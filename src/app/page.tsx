@@ -46,8 +46,8 @@ export default function AdvancedEmasBungPWA() {
   const [adminTab, setAdminTab] = useState("price");
   const [pinInput, setPinInput] = useState("");
   
-  // STATE BUYBACK (DEFAULT 1 GRAM, INPUT BEBAS DINAMIS)
-  const [bbGram, setBbGram] = useState<any>(1);
+  // STATE BUYBACK: Pakai string biar aman dari blank input, default "1"
+  const [bbGram, setBbGram] = useState<string>("1");
   const [bbEdition, setBbEdition] = useState<string>("press");
   const [bbCondition, setBbCondition] = useState<string>("mulus"); 
   const [bbEstimate, setBbEstimate] = useState<number>(0);
@@ -58,7 +58,8 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV32");
+    // BUMP VERSI KE V33 UNTUK HARD RESET CACHE LOKAL YANG CORRUPT
+    const savedData = localStorage.getItem("emasBungV33");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -80,13 +81,23 @@ export default function AdvancedEmasBungPWA() {
     return () => clearTimeout(notifTimer);
   }, []);
 
-  // RUMUS KALKULASI BUYBACK DINAMIS BERDASARKAN INPUT GRAM & KONDISI
+  // SAFE CALCULATION LOGIC: Gak bakal return NaN lagi
   useEffect(() => {
-    const gramNum = Number(bbGram) || 0;
-    let baseVal = buybackPrice * gramNum;
-    if (bbEdition === "retro") baseVal -= (gramNum * 10000); // Penyesuaian cetakan klasik
-    if (bbCondition === "baret") baseVal -= (gramNum * 15000); // Penyesuaian kondisi baret/buka
-    setBbEstimate(Math.round(baseVal > 0 ? baseVal : 0));
+    const gramNum = parseFloat(bbGram);
+    
+    // Kalau input kosong atau gak valid, otomatis 0
+    if (isNaN(gramNum) || gramNum <= 0) {
+      setBbEstimate(0);
+      return;
+    }
+
+    const safeBuybackPrice = Number(buybackPrice) || 2401000;
+    let baseVal = safeBuybackPrice * gramNum;
+    
+    if (bbEdition === "retro") baseVal -= (gramNum * 10000);
+    if (bbCondition === "baret") baseVal -= (gramNum * 15000);
+    
+    setBbEstimate(Math.max(0, Math.round(baseVal)));
   }, [bbGram, bbEdition, bbCondition, buybackPrice]);
 
   if (!isMounted) return null;
@@ -131,7 +142,8 @@ export default function AdvancedEmasBungPWA() {
 
   const handleBuybackWA = () => {
     triggerHaptic();
-    const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${bbGram}gr*.%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi sistem: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan COD?`;
+    const gramNum = parseFloat(bbGram) || 1;
+    const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${gramNum}gr*.%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi sistem: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan COD?`;
     window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
   };
 
@@ -156,9 +168,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV32") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV33") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV32", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV33", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -336,7 +348,7 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* JUAL / BUYBACK (INPUT BEBAS, DEFAULT 1G, DINAMIS SEPERTI GAMBAR REFERENSI) */}
+        {/* JUAL / BUYBACK (INPUT BEBAS, DEFAULT 1G, DINAMIS FIX) */}
         {activeTab === "jual" && (
           <section className="p-5 animate-in fade-in slide-in-from-right-2 duration-300 w-full overflow-hidden">
             <h2 className="text-2xl font-black tracking-tight mb-1 uppercase">Jual / Buyback ke BUNG</h2>
@@ -350,10 +362,7 @@ export default function AdvancedEmasBungPWA() {
                   min="0.1" 
                   step="any"
                   value={bbGram} 
-                  onChange={(e) => {
-                    triggerHaptic();
-                    setBbGram(e.target.value);
-                  }} 
+                  onChange={(e) => setBbGram(e.target.value)} // NO HAPTIC FEEDBACK HERE BIAR GAK FREEZE
                   className="w-full border-2 border-[#111] font-black text-2xl py-2.5 px-3 focus:outline-none focus:border-[#e33a24] bg-zinc-50" 
                   placeholder="Contoh: 1, 5, 15..."
                 />
@@ -362,14 +371,14 @@ export default function AdvancedEmasBungPWA() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider block mb-1">Edisi Cetakan:</label>
-                  <select value={bbEdition} onChange={(e) => setBbEdition(e.target.value)} className="w-full border-2 border-[#111] font-bold text-xs py-2.5 px-2 focus:outline-none bg-white">
+                  <select value={bbEdition} onChange={(e) => { triggerHaptic(); setBbEdition(e.target.value); }} className="w-full border-2 border-[#111] font-bold text-xs py-2.5 px-2 focus:outline-none bg-white">
                     <option value="press">CertiCard (Press)</option>
                     <option value="retro">Klasik (Retro)</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider block mb-1">Kemasan:</label>
-                  <select value={bbCondition} onChange={(e) => setBbCondition(e.target.value)} className="w-full border-2 border-[#111] font-bold text-xs py-2.5 px-2 focus:outline-none bg-white">
+                  <select value={bbCondition} onChange={(e) => { triggerHaptic(); setBbCondition(e.target.value); }} className="w-full border-2 border-[#111] font-bold text-xs py-2.5 px-2 focus:outline-none bg-white">
                     <option value="mulus">Mulus 100%</option>
                     <option value="baret">Baret / Buka</option>
                   </select>
