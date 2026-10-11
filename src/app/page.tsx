@@ -1,4 +1,4 @@
-"use client";
+"export client";
 import { useState, useEffect } from "react";
 
 export const metadata = {
@@ -57,7 +57,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV27");
+    const savedData = localStorage.getItem("emasBungV28");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -79,11 +79,10 @@ export default function AdvancedEmasBungPWA() {
     return () => clearTimeout(notifTimer);
   }, []);
 
-  // KALKULASI BUYBACK OTOMATIS BERDASARKAN INPUT
   useEffect(() => {
     let baseVal = buybackPrice * Number(bbGram || 0);
-    if (bbEdition === "retro") baseVal -= (bbGram * 10000); // Penyesuaian cetakan klasik
-    if (bbCondition === "baret") baseVal -= (bbGram * 15000); // Penyesuaian kondisi baret/buka
+    if (bbEdition === "retro") baseVal -= (bbGram * 10000);
+    if (bbCondition === "baret") baseVal -= (bbGram * 15000);
     setBbEstimate(baseVal > 0 ? baseVal : 0);
   }, [bbGram, bbEdition, bbCondition, buybackPrice]);
 
@@ -107,11 +106,12 @@ export default function AdvancedEmasBungPWA() {
     } else {
       setCart([...cart, { gram, qty: 1, price }]);
     }
-    setShowCart(true); // Auto buka keranjang biar interaktif
+    setShowCart(true);
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
+  // CHECKOUT WA (FIXED: Perspektif Buyer)
   const handleCheckoutWA = () => {
     triggerHaptic();
     if (cart.length === 0) return;
@@ -127,6 +127,7 @@ export default function AdvancedEmasBungPWA() {
     setShowCart(false);
   };
 
+  // BUYBACK WA (FIXED: Perspektif Seller / Buyer yang mau jual)
   const handleBuybackWA = () => {
     triggerHaptic();
     const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${bbGram}gr*.%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi sistem: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan COD?`;
@@ -154,9 +155,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV27") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV28") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV27", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV28", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -334,7 +335,7 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* JUAL (FIXED & FULL FUNCTIONAL) */}
+        {/* JUAL */}
         {activeTab === "jual" && (
           <section className="p-5 animate-in fade-in slide-in-from-right-2 duration-300 w-full overflow-hidden">
             <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">Jual / Buyback ke BUNG</h2>
@@ -468,7 +469,7 @@ export default function AdvancedEmasBungPWA() {
         )}
       </div>
 
-      {/* CART MODAL (INTERACTIVE & SMOOTH) */}
+      {/* CART MODAL */}
       {showCart && (
         <div className="fixed inset-0 z-50 bg-[#111]/80 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
           <div className="bg-white w-[85%] max-w-sm h-full border-l-4 border-[#111] p-5 flex flex-col animate-in slide-in-from-right duration-300">
