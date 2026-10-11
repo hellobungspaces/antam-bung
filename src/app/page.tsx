@@ -46,10 +46,10 @@ export default function AdvancedEmasBungPWA() {
   const [adminTab, setAdminTab] = useState("price");
   const [pinInput, setPinInput] = useState("");
   
-  // STATE BUYBACK (DIJAMIN LIVE-UPDATE)
-  const [bbGram, setBbGram] = useState<number>(5);
-  const [bbQty, setBbQty] = useState<number>(1);
-  const [bbCondition, setBbCondition] = useState<string>("utuh"); 
+  // STATE BUYBACK (DEFAULT 1 GRAM, INPUT BEBAS DINAMIS)
+  const [bbGram, setBbGram] = useState<any>(1);
+  const [bbEdition, setBbEdition] = useState<string>("press");
+  const [bbCondition, setBbCondition] = useState<string>("mulus"); 
   const [bbEstimate, setBbEstimate] = useState<number>(0);
 
   const SECRET_PIN = "0000"; 
@@ -58,7 +58,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV31");
+    const savedData = localStorage.getItem("emasBungV32");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -80,16 +80,14 @@ export default function AdvancedEmasBungPWA() {
     return () => clearTimeout(notifTimer);
   }, []);
 
-  // RUMUS KALKULASI BUYBACK REAL-TIME
+  // RUMUS KALKULASI BUYBACK DINAMIS BERDASARKAN INPUT GRAM & KONDISI
   useEffect(() => {
-    let baseRate = buybackPrice * Number(bbGram) * Number(bbQty);
-    if (bbCondition === "rusak") {
-      baseRate -= baseRate * 0.015; // Potongan 1.5%
-    } else if (bbCondition === "tanpa_sertifikat") {
-      baseRate -= baseRate * 0.05; // Potongan 5%
-    }
-    setBbEstimate(Math.round(baseRate > 0 ? baseRate : 0));
-  }, [bbGram, bbQty, bbCondition, buybackPrice]);
+    const gramNum = Number(bbGram) || 0;
+    let baseVal = buybackPrice * gramNum;
+    if (bbEdition === "retro") baseVal -= (gramNum * 10000); // Penyesuaian cetakan klasik
+    if (bbCondition === "baret") baseVal -= (gramNum * 15000); // Penyesuaian kondisi baret/buka
+    setBbEstimate(Math.round(baseVal > 0 ? baseVal : 0));
+  }, [bbGram, bbEdition, bbCondition, buybackPrice]);
 
   if (!isMounted) return null;
 
@@ -133,11 +131,7 @@ export default function AdvancedEmasBungPWA() {
 
   const handleBuybackWA = () => {
     triggerHaptic();
-    let condText = "Segel & sertifikat utuh";
-    if (bbCondition === "rusak") condText = "Segel rusak / terbuka (-1,5%)";
-    if (bbCondition === "tanpa_sertifikat") condText = "Tanpa sertifikat (-5%)";
-
-    const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${bbGram}gr* sebanyak *${bbQty} keping*.%0aKondisi: ${condText}.%0aEstimasi sistem: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan COD?`;
+    const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${bbGram}gr*.%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi sistem: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan COD?`;
     window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
   };
 
@@ -162,9 +156,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV31") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV32") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV31", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV32", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -342,109 +336,55 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* JUAL / BUYBACK (REDESIGN & INTERAKTIF) */}
+        {/* JUAL / BUYBACK (INPUT BEBAS, DEFAULT 1G, DINAMIS SEPERTI GAMBAR REFERENSI) */}
         {activeTab === "jual" && (
           <section className="p-5 animate-in fade-in slide-in-from-right-2 duration-300 w-full overflow-hidden">
-            <h2 className="text-2xl font-black tracking-tight mb-1 uppercase">Kalkulator Buyback</h2>
-            <p className="text-xs font-bold text-zinc-500 mb-4">Buyback hari ini <strong className="text-[#111]">Rp {buybackPrice.toLocaleString('id-ID')}/gr</strong>. Dicek, dibayar di tempat.</p>
-
-            <div className="bg-white border-4 border-[#111] shadow-[6px_6px_0px_0px_#111] overflow-hidden space-y-0">
-              
-              {/* 1. GRAMASI GRID */}
-              <div className="border-b-2 border-[#111]">
-                <div className="bg-[#f4f4f0] px-3 py-1.5 border-b-2 border-[#111]">
-                  <span className="text-[10px] font-black tracking-widest text-[#e33a24] uppercase">1 • GRAMASI</span>
-                </div>
-                <div className="grid grid-cols-4 divide-x-2 divide-y-2 divide-[#111]">
-                  {[1, 2, 3, 5, 10, 25, 50, 100].map((g) => {
-                    const isSelected = bbGram === g;
-                    return (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => { triggerHaptic(); setBbGram(g); }}
-                        className={`py-4 text-center font-black transition-colors flex flex-col items-center justify-center cursor-pointer ${isSelected ? 'bg-[#e33a24] text-white' : 'bg-white text-[#111] hover:bg-zinc-100'}`}
-                      >
-                        <span className="text-xl leading-none">{g}</span>
-                        <span className="text-[9px] uppercase tracking-wider mt-0.5">gr</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            <h2 className="text-2xl font-black tracking-tight mb-1 uppercase">Jual / Buyback ke BUNG</h2>
+            <p className="text-xs font-bold text-zinc-500 mb-6">Mau cairkan emas Antam kamu? Hitung estimasi harganya di sini secara real-time.</p>
+            
+            <div className="bg-white border-4 border-[#111] p-5 shadow-[6px_6px_0px_0px_#111] space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider block mb-1">Pecahan (Gram):</label>
+                <input 
+                  type="number" 
+                  min="0.1" 
+                  step="any"
+                  value={bbGram} 
+                  onChange={(e) => {
+                    triggerHaptic();
+                    setBbGram(e.target.value);
+                  }} 
+                  className="w-full border-2 border-[#111] font-black text-2xl py-2.5 px-3 focus:outline-none focus:border-[#e33a24] bg-zinc-50" 
+                  placeholder="Contoh: 1, 5, 15..."
+                />
               </div>
 
-              {/* 2. JUMLAH KEPING */}
-              <div className="border-b-2 border-[#111] p-3">
-                <span className="text-[10px] font-black tracking-widest text-[#e33a24] uppercase block mb-2">2 • JUMLAH KEPING</span>
-                <div className="flex items-center w-36 border-2 border-[#111] bg-white">
-                  <button 
-                    type="button"
-                    onClick={() => { triggerHaptic(); if (bbQty > 1) setBbQty(bbQty - 1); }}
-                    className="w-10 h-10 flex items-center justify-center font-black text-lg bg-zinc-100 border-r-2 border-[#111] active:bg-zinc-200 cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <div className="flex-1 text-center font-black text-base">{bbQty}</div>
-                  <button 
-                    type="button"
-                    onClick={() => { triggerHaptic(); setBbQty(bbQty + 1); }}
-                    className="w-10 h-10 flex items-center justify-center font-black text-lg bg-zinc-100 border-l-2 border-[#111] active:bg-zinc-200 cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* 3. KONDISI */}
-              <div className="border-b-2 border-[#111]">
-                <div className="bg-[#f4f4f0] px-3 py-1.5 border-b-2 border-[#111]">
-                  <span className="text-[10px] font-black tracking-widest text-[#e33a24] uppercase">3 • KONDISI</span>
-                </div>
-                <div className="divide-y-2 divide-[#111]">
-                  {[
-                    { id: "utuh", title: "Segel & sertifikat utuh", desc: "Kondisi seperti baru", badge: "Full" },
-                    { id: "rusak", title: "Segel rusak / terbuka", desc: "Sertifikat masih ada", badge: "-1,5%" },
-                    { id: "tanpa_sertifikat", title: "Tanpa sertifikat", desc: "Perlu cek tambahan", badge: "-5%" },
-                  ].map((cond) => {
-                    const isChecked = bbCondition === cond.id;
-                    return (
-                      <div 
-                        key={cond.id}
-                        onClick={() => { triggerHaptic(); setBbCondition(cond.id); }}
-                        className={`p-3.5 flex items-center justify-between cursor-pointer transition-colors ${isChecked ? 'bg-amber-50/60' : 'bg-white hover:bg-zinc-50'}`}
-                      >
-                        <div className="flex items-center gap-3 pointer-events-none">
-                          <div className={`w-5 h-5 border-2 border-[#111] flex items-center justify-center font-black ${isChecked ? 'bg-[#e33a24] text-white' : 'bg-white'}`}>
-                            {isChecked && "✓"}
-                          </div>
-                          <div>
-                            <p className="font-black text-xs text-[#111]">{cond.title}</p>
-                            <p className="text-[10px] font-bold text-zinc-500">{cond.desc}</p>
-                          </div>
-                        </div>
-                        <span className="text-xs font-black text-[#111]">{cond.badge}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ESTIMASI TOTAL & TOMBOL AKSI */}
-              <div className="bg-[#111] text-white p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Estimasi lu terima</p>
-                  <p className="text-3xl font-black tracking-tight text-white">Rp {bbEstimate.toLocaleString('id-ID')}</p>
-                  <p className="text-[9px] font-bold text-zinc-400 mt-1">Final setelah dicek fisik & sertifikat di tempat COD.</p>
+                  <label className="text-[10px] font-black uppercase tracking-wider block mb-1">Edisi Cetakan:</label>
+                  <select value={bbEdition} onChange={(e) => setBbEdition(e.target.value)} className="w-full border-2 border-[#111] font-bold text-xs py-2.5 px-2 focus:outline-none bg-white">
+                    <option value="press">CertiCard (Press)</option>
+                    <option value="retro">Klasik (Retro)</option>
+                  </select>
                 </div>
-                <button 
-                  type="button"
-                  onClick={handleBuybackWA} 
-                  className="w-full py-4 bg-[#e33a24] text-white font-black uppercase tracking-wider text-xs border-2 border-white shadow-[4px_4px_0px_0px_#fff] active:translate-y-1 active:shadow-none transition-all cursor-pointer"
-                >
-                  Proses Buyback via WhatsApp ➔
-                </button>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider block mb-1">Kemasan:</label>
+                  <select value={bbCondition} onChange={(e) => setBbCondition(e.target.value)} className="w-full border-2 border-[#111] font-bold text-xs py-2.5 px-2 focus:outline-none bg-white">
+                    <option value="mulus">Mulus 100%</option>
+                    <option value="baret">Baret / Buka</option>
+                  </select>
+                </div>
               </div>
 
+              <div className="border-t-2 border-dashed border-[#111] pt-4 mt-2 bg-[#111] text-white p-4 -mx-5 -mb-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Estimasi cair:</p>
+                <p className="text-4xl font-black text-[#e33a24] tracking-tight">Rp {bbEstimate.toLocaleString('id-ID')}</p>
+                <p className="text-[9px] font-bold text-zinc-400 mt-1">Final setelah dicek fisik & sertifikat di tempat COD.</p>
+              </div>
+
+              <button onClick={handleBuybackWA} className="w-full py-4 mt-4 bg-[#e33a24] text-white font-black uppercase tracking-wider border-2 border-[#111] shadow-[4px_4px_0px_0px_#111] active:translate-y-1 active:shadow-none transition-all">
+                Proses Buyback via WhatsApp ➔
+              </button>
             </div>
           </section>
         )}
