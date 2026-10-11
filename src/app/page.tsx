@@ -18,18 +18,8 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
-  const [gallery, setGallery] = useState([
-    { id: 1, img: "/images/cod1.jpg", gram: "10g", loc: "Stasiun Klender" },
-    { id: 2, img: "/images/cod2.jpg", gram: "5g", loc: "Stasiun Tebet" },
-    { id: 3, img: "/images/cod3.jpg", gram: "25g", loc: "Rawamangun" },
-    { id: 4, img: "/images/cod4.jpg", gram: "50g", loc: "Kelapa Gading" },
-    { id: 5, img: "/images/cod5.jpg", gram: "100g", loc: "Sudirman" },
-    { id: 6, img: "/images/cod6.jpg", gram: "1g", loc: "Stasiun Cawang" },
-    { id: 7, img: "/images/cod7.jpg", gram: "2g", loc: "Matraman" },
-    { id: 8, img: "/images/cod8.jpg", gram: "5g", loc: "Kuningan" },
-    { id: 9, img: "/images/cod9.jpg", gram: "10g", loc: "BKT Jaktim" },
-    { id: 10, img: "/images/cod10.jpg", gram: "25g", loc: "Cakung" },
-  ]);
+  // GALERI BERSIH TANPA DUMMY (SIAP DI-UPLOAD DARI ADMIN)
+  const [gallery, setGallery] = useState<{ id: number; img: string; gram: string; loc: string; }[]>([]);
 
   const [newGram, setNewGram] = useState("");
   const [newStock, setNewStock] = useState("");
@@ -64,7 +54,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV14");
+    const savedData = localStorage.getItem("emasBungV15");
     if (savedData) {
       const parsed = JSON.parse(savedData);
       if (parsed.basePrice) setBasePrice(parsed.basePrice);
@@ -144,8 +134,8 @@ export default function AdvancedEmasBungPWA() {
   };
 
   const saveToStorage = (partialData: any) => {
-    const existing = JSON.parse(localStorage.getItem("emasBungV14") || "{}");
-    localStorage.setItem("emasBungV14", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
+    const existing = JSON.parse(localStorage.getItem("emasBungV15") || "{}");
+    localStorage.setItem("emasBungV15", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
   };
 
   const handleAdminSave = () => {
@@ -190,7 +180,7 @@ export default function AdvancedEmasBungPWA() {
           </div>
         </div>
 
-        {/* HERO SECTION - HANYA DI HOMEPAGE */}
+        {/* HERO SECTION */}
         {activeTab === "beranda" && (
           <div className="animate-in fade-in duration-300">
             <div className="bg-white/10 border-2 border-white/20 p-4 mb-4 backdrop-blur-sm">
@@ -361,22 +351,28 @@ export default function AdvancedEmasBungPWA() {
         {activeTab === "galeri" && (
           <section className="p-5 animate-in fade-in duration-300 w-full overflow-hidden">
             <h2 className="text-2xl font-black tracking-tight mb-4 uppercase">Verified COD</h2>
-            <div className="columns-2 gap-3 space-y-3 w-full">
-              {gallery.map((pic) => (
-                <div key={pic.id} className="border-2 border-[#111] group bg-white shadow-[4px_4px_0px_0px_#111] mb-3 break-inside-avoid">
-                  <img 
-                    src={pic.img} 
-                    alt={`COD Emas ${pic.loc}`}
-                    onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400"; }}
-                    className="w-full min-h-[100px] h-auto object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-300 bg-zinc-200" 
-                  />
-                  <div className="p-2 border-t-2 border-[#111] bg-white flex justify-between items-center">
-                    <span className="text-[10px] font-black bg-[#e33a24] text-white px-1.5 py-0.5">{pic.gram}</span>
-                    <p className="text-[9px] font-bold truncate max-w-[80px]">📍 {pic.loc}</p>
+            {gallery.length === 0 ? (
+              <div className="bg-white border-2 border-[#111] p-8 text-center shadow-[4px_4px_0px_0px_#111]">
+                <p className="text-xs font-black uppercase text-zinc-400">Belum ada foto dokumentasi COD.</p>
+                <p className="text-[10px] font-bold text-zinc-500 mt-1">Buka Admin Panel (PIN: 0000) untuk upload foto asli kamu!</p>
+              </div>
+            ) : (
+              <div className="columns-2 gap-3 space-y-3 w-full">
+                {gallery.map((pic) => (
+                  <div key={pic.id} className="border-2 border-[#111] group bg-white shadow-[4px_4px_0px_0px_#111] mb-3 break-inside-avoid">
+                    <img 
+                      src={pic.img} 
+                      alt={`COD Emas ${pic.loc}`}
+                      className="w-full min-h-[100px] h-auto object-cover bg-zinc-200" 
+                    />
+                    <div className="p-2 border-t-2 border-[#111] bg-white flex justify-between items-center">
+                      <span className="text-[10px] font-black bg-[#e33a24] text-white px-1.5 py-0.5">{pic.gram}</span>
+                      <p className="text-[9px] font-bold truncate max-w-[80px]">📍 {pic.loc}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
