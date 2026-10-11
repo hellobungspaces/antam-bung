@@ -64,7 +64,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV12");
+    const savedData = localStorage.getItem("emasBungV13");
     if (savedData) {
       const parsed = JSON.parse(savedData);
       if (parsed.basePrice) setBasePrice(parsed.basePrice);
@@ -144,8 +144,8 @@ export default function AdvancedEmasBungPWA() {
   };
 
   const saveToStorage = (partialData: any) => {
-    const existing = JSON.parse(localStorage.getItem("emasBungV12") || "{}");
-    localStorage.setItem("emasBungV12", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
+    const existing = JSON.parse(localStorage.getItem("emasBungV13") || "{}");
+    localStorage.setItem("emasBungV13", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
   };
 
   const handleAdminSave = () => {
@@ -595,17 +595,34 @@ export default function AdvancedEmasBungPWA() {
             {adminTab === 'gallery' && (
               <div className="space-y-4">
                 <div className="bg-white p-4 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111] space-y-3">
-                  <h3 className="font-black text-xs uppercase text-[#e33a24]">Tambah Foto COD Baru</h3>
-                  <input type="text" placeholder="URL Foto" value={newGalleryImg} onChange={(e)=>setNewGalleryImg(e.target.value)} className="w-full border-2 border-[#111] p-2 text-xs font-bold" />
+                  <h3 className="font-black text-xs uppercase text-[#e33a24]">Upload Foto COD Baru</h3>
+                  <div>
+                    <label className="text-[9px] font-black uppercase text-zinc-500 block mb-1">Pilih File Foto Dari Komputer:</label>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e)=>{
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewGalleryImg(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }} 
+                      className="w-full border-2 border-[#111] p-2 text-xs font-bold bg-white file:mr-4 file:py-1 file:px-3 file:border-0 file:text-xs file:font-black file:bg-[#111] file:text-white" 
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="Gram" value={newGalleryGram} onChange={(e)=>setNewGalleryGram(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
-                    <input type="text" placeholder="Lokasi" value={newGalleryLoc} onChange={(e)=>setNewGalleryLoc(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
+                    <input type="text" placeholder="Gram (cth: 10g)" value={newGalleryGram} onChange={(e)=>setNewGalleryGram(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
+                    <input type="text" placeholder="Lokasi (cth: Stasiun Bekasi)" value={newGalleryLoc} onChange={(e)=>setNewGalleryLoc(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
                   </div>
                   <button onClick={()=>{
-                    if(!newGalleryImg || !newGalleryLoc) return alert("Isi URL gambar dan lokasi!");
+                    if(!newGalleryImg || !newGalleryLoc) return alert("Pilih foto dan isi lokasi terlebih dahulu!");
                     setGallery([{ id: Date.now(), img: newGalleryImg, gram: newGalleryGram || "5g", loc: newGalleryLoc }, ...gallery]);
                     setNewGalleryImg(""); setNewGalleryGram(""); setNewGalleryLoc("");
-                    alert("Foto galeri berhasil ditambahkan!");
+                    alert("Foto galeri berhasil di-upload!");
                   }} className="w-full bg-[#111] text-white py-2 font-black text-xs uppercase">
                     + Upload Foto Galeri
                   </button>
