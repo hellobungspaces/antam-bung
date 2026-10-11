@@ -64,7 +64,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV13");
+    const savedData = localStorage.getItem("emasBungV14");
     if (savedData) {
       const parsed = JSON.parse(savedData);
       if (parsed.basePrice) setBasePrice(parsed.basePrice);
@@ -144,8 +144,8 @@ export default function AdvancedEmasBungPWA() {
   };
 
   const saveToStorage = (partialData: any) => {
-    const existing = JSON.parse(localStorage.getItem("emasBungV13") || "{}");
-    localStorage.setItem("emasBungV13", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
+    const existing = JSON.parse(localStorage.getItem("emasBungV14") || "{}");
+    localStorage.setItem("emasBungV14", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
   };
 
   const handleAdminSave = () => {
