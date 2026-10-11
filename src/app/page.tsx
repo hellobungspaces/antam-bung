@@ -18,7 +18,6 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
-  // GALERI BERSIH TANPA DUMMY (SIAP DI-UPLOAD DARI ADMIN)
   const [gallery, setGallery] = useState<{ id: number; img: string; gram: string; loc: string; }[]>([]);
 
   const [newGram, setNewGram] = useState("");
@@ -54,14 +53,18 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV15");
+    const savedData = localStorage.getItem("emasBungV16");
     if (savedData) {
-      const parsed = JSON.parse(savedData);
-      if (parsed.basePrice) setBasePrice(parsed.basePrice);
-      if (parsed.buybackPrice) setBuybackPrice(parsed.buybackPrice);
-      if (parsed.inventory) setInventory(parsed.inventory);
-      if (parsed.gallery) setGallery(parsed.gallery);
-      if (parsed.orders) setOrders(parsed.orders);
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.basePrice) setBasePrice(parsed.basePrice);
+        if (parsed.buybackPrice) setBuybackPrice(parsed.buybackPrice);
+        if (parsed.inventory) setInventory(parsed.inventory);
+        if (parsed.gallery) setGallery(parsed.gallery);
+        if (parsed.orders) setOrders(parsed.orders);
+      } catch (err) {
+        console.error("Storage parse error", err);
+      }
     }
     
     const notifTimer = setTimeout(() => {
@@ -134,8 +137,14 @@ export default function AdvancedEmasBungPWA() {
   };
 
   const saveToStorage = (partialData: any) => {
-    const existing = JSON.parse(localStorage.getItem("emasBungV15") || "{}");
-    localStorage.setItem("emasBungV15", JSON.stringify({ ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData }));
+    try {
+      const existing = JSON.parse(localStorage.getItem("emasBungV16") || "{}");
+      const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
+      localStorage.setItem("emasBungV16", JSON.stringify(dataToSave));
+    } catch (error) {
+      alert("Penyimpanan penuh! Kurangi ukuran atau jumlah foto galeri.");
+      console.error(error);
+    }
   };
 
   const handleAdminSave = () => {
