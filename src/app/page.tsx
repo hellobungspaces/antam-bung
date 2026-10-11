@@ -1,6 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 
+export const metadata = {
+  title: "Emas BUNG - Jual Beli & COD Antam Official",
+  description: "Platform jual beli dan buyback resmi emas Antam Logam Mulia Jabodetabek",
+  viewport: "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
+};
+
 export default function AdvancedEmasBungPWA() {
   const [isMounted, setIsMounted] = useState(false);
   const [basePrice, setBasePrice] = useState(2592000); 
@@ -18,9 +24,8 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
-  // GALERI KOLASE PENUH (COD2.PNG)
   const [gallery, setGallery] = useState([
-    { id: 1, img: "/images/cod2.png", gram: "Dokumentasi Lengkap", loc: "Jabodetabek & Stasiun KRL" },
+    { id: 1, img: "/images/cod2.png", gram: "Kolase COD", loc: "Jabodetabek" },
   ]);
 
   const [newGram, setNewGram] = useState("");
@@ -52,7 +57,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV24");
+    const savedData = localStorage.getItem("emasBungV26");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -137,9 +142,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV24") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV26") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV24", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV26", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -355,24 +360,21 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* GALERI FULL-WIDTH */}
+        {/* GALERI */}
         {activeTab === "galeri" && (
           <section className="p-5 animate-in fade-in duration-300 w-full overflow-hidden">
             <h2 className="text-2xl font-black tracking-tight mb-4 uppercase">Verified COD</h2>
             <div className="space-y-4 w-full">
               {gallery.map((pic) => (
-                <div key={pic.id} className="border-4 border-[#111] bg-white shadow-[6px_6px_0px_0px_#111] overflow-hidden">
+                <div key={pic.id} className="border-4 border-[#111] bg-white shadow-[6px_6px_0px_0px_#111]">
                   <img 
                     src={pic.img} 
-                    alt={`COD Emas ${pic.loc}`}
-                    onError={(e) => { 
-                      e.currentTarget.src = "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=800"; 
-                    }}
-                    className="w-full h-auto object-cover bg-zinc-200" 
+                    alt="Kolase COD Emas BUNG"
+                    className="w-full h-auto object-contain bg-zinc-900 block" 
                   />
                   <div className="p-3 border-t-4 border-[#111] bg-white flex justify-between items-center">
-                    <span className="text-xs font-black bg-[#e33a24] text-white px-2 py-1 uppercase">{pic.gram}</span>
-                    <p className="text-xs font-black truncate max-w-[200px]">📍 {pic.loc}</p>
+                    <span className="text-xs font-black bg-[#e33a24] text-white px-2 py-1 uppercase">Dokumentasi</span>
+                    <p className="text-xs font-black truncate">📍 Jabodetabek</p>
                   </div>
                 </div>
               ))}
@@ -595,8 +597,8 @@ export default function AdvancedEmasBungPWA() {
             {adminTab === 'gallery' && (
               <div className="space-y-4">
                 <div className="bg-white p-4 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111]">
-                  <h3 className="font-black text-xs uppercase mb-3 text-[#e33a24]">Kelola Foto Galeri</h3>
-                  <p className="text-[10px] font-bold text-zinc-600 mb-3">Foto kolase <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod2.png</code> aktif dan tampil full-width di halaman galeri.</p>
+                  <h3 className="font-black text-xs uppercase mb-3 text-[#e33a24]">Galeri Aktif</h3>
+                  <p className="text-[10px] font-bold text-zinc-600">File <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod2.png</code> diset tampil penuh secara proporsional.</p>
                 </div>
               </div>
             )}
