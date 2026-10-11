@@ -18,18 +18,23 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
+  // 10 FOTO DOKUMENTASI COD PERMANEN DI FOLDER PUBLIC/IMAGES/
   const [gallery, setGallery] = useState([
-    { id: 1, img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400", gram: "10g", loc: "Stasiun Klender" },
-    { id: 2, img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400", gram: "5g", loc: "Stasiun Tebet" },
+    { id: 1, img: "/images/cod1.jpg", gram: "10g", loc: "Klender" },
+    { id: 2, img: "/images/cod22.jpg", gram: "5g", loc: "MCD Duren Sawit" },
+    { id: 3, img: "/images/cod3.jpg", gram: "25g", loc: "Rawamangun" },
+    { id: 4, img: "/images/cod4.jpg", gram: "50g", loc: "Kelapa Gading" },
+    { id: 5, img: "/images/cod5.jpg", gram: "100g", loc: "Sudirman" },
+    { id: 6, img: "/images/cod6.jpg", gram: "1g", loc: "Stasiun Cawang" },
+    { id: 7, img: "/images/cod7.jpg", gram: "2g", loc: "Matraman" },
+    { id: 8, img: "/images/cod8.jpg", gram: "5g", loc: "Kuningan" },
+    { id: 9, img: "/images/cod9.jpg", gram: "10g", loc: "BKT Jaktim" },
+    { id: 10, img: "/images/cod10.jpg", gram: "25g", loc: "Cakung" },
   ]);
 
   const [newGram, setNewGram] = useState("");
   const [newStock, setNewStock] = useState("");
   const [newDisc, setNewDisc] = useState("");
-
-  const [newGalleryImg, setNewGalleryImg] = useState("");
-  const [newGalleryGram, setNewGalleryGram] = useState("");
-  const [newGalleryLoc, setNewGalleryLoc] = useState("");
 
   const [orders, setOrders] = useState<{id: string, name: string, detail: string, status: string}[]>([]);
   const [cart, setCart] = useState<{gram: number, qty: number, price: number}[]>([]);
@@ -56,7 +61,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV17");
+    const savedData = localStorage.getItem("emasBungV20");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -141,9 +146,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV17") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV20") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV17", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV20", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -363,28 +368,22 @@ export default function AdvancedEmasBungPWA() {
         {activeTab === "galeri" && (
           <section className="p-5 animate-in fade-in duration-300 w-full overflow-hidden">
             <h2 className="text-2xl font-black tracking-tight mb-4 uppercase">Verified COD</h2>
-            {gallery.length === 0 ? (
-              <div className="bg-white border-2 border-[#111] p-8 text-center shadow-[4px_4px_0px_0px_#111]">
-                <p className="text-xs font-black uppercase text-zinc-400">Belum ada foto dokumentasi COD.</p>
-              </div>
-            ) : (
-              <div className="columns-2 gap-3 space-y-3 w-full">
-                {gallery.map((pic) => (
-                  <div key={pic.id} className="border-2 border-[#111] group bg-white shadow-[4px_4px_0px_0px_#111] mb-3 break-inside-avoid">
-                    <img 
-                      src={pic.img} 
-                      alt={`COD Emas ${pic.loc}`}
-                      onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400"; }}
-                      className="w-full min-h-[100px] h-auto object-cover bg-zinc-200" 
-                    />
-                    <div className="p-2 border-t-2 border-[#111] bg-white flex justify-between items-center">
-                      <span className="text-[10px] font-black bg-[#e33a24] text-white px-1.5 py-0.5">{pic.gram}</span>
-                      <p className="text-[9px] font-bold truncate max-w-[80px]">📍 {pic.loc}</p>
-                    </div>
+            <div className="columns-2 gap-3 space-y-3 w-full">
+              {gallery.map((pic) => (
+                <div key={pic.id} className="border-2 border-[#111] group bg-white shadow-[4px_4px_0px_0px_#111] mb-3 break-inside-avoid">
+                  <img 
+                    src={pic.img} 
+                    alt={`COD Emas ${pic.loc}`}
+                    onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400"; }}
+                    className="w-full min-h-[100px] h-auto object-cover bg-zinc-200" 
+                  />
+                  <div className="p-2 border-t-2 border-[#111] bg-white flex justify-between items-center">
+                    <span className="text-[10px] font-black bg-[#e33a24] text-white px-1.5 py-0.5">{pic.gram}</span>
+                    <p className="text-[9px] font-bold truncate max-w-[80px]">📍 {pic.loc}</p>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
@@ -602,39 +601,14 @@ export default function AdvancedEmasBungPWA() {
 
             {adminTab === 'gallery' && (
               <div className="space-y-4">
-                <div className="bg-white p-4 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111] space-y-3">
-                  <h3 className="font-black text-xs uppercase text-[#e33a24]">Tambah Foto COD Baru (URL)</h3>
-                  <div>
-                    <label className="text-[9px] font-black uppercase text-zinc-500 block mb-1">Link URL Foto:</label>
-                    <input 
-                      type="text" 
-                      placeholder="https://images.unsplash.com/... atau link gambar" 
-                      value={newGalleryImg} 
-                      onChange={(e)=>setNewGalleryImg(e.target.value)} 
-                      className="w-full border-2 border-[#111] p-2 text-xs font-bold bg-white" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="Gram (cth: 10g)" value={newGalleryGram} onChange={(e)=>setNewGalleryGram(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
-                    <input type="text" placeholder="Lokasi (cth: Stasiun Klender)" value={newGalleryLoc} onChange={(e)=>setNewGalleryLoc(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
-                  </div>
-                  <button onClick={()=>{
-                    if(!newGalleryImg || !newGalleryLoc) return alert("Isi URL foto dan lokasi dengan benar!");
-                    setGallery([{ id: Date.now(), img: newGalleryImg, gram: newGalleryGram || "5g", loc: newGalleryLoc }, ...gallery]);
-                    setNewGalleryImg(""); setNewGalleryGram(""); setNewGalleryLoc("");
-                    alert("Foto galeri berhasil ditambahkan!");
-                  }} className="w-full bg-[#111] text-white py-2 font-black text-xs uppercase">
-                    + Tambah Foto Galeri
-                  </button>
-                </div>
-
                 <div className="bg-white p-4 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111]">
-                  <h3 className="font-black text-xs uppercase mb-3 text-[#e33a24]">Daftar Foto Galeri Saat Ini</h3>
+                  <h3 className="font-black text-xs uppercase mb-3 text-[#e33a24]">Kelola Foto Galeri (10 Slot Permanen)</h3>
+                  <p className="text-[10px] font-bold text-zinc-600 mb-3">Pastikan ke-10 foto asli kamu sudah dimasukkan ke folder <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">public/images/</code> dengan nama file <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod1.jpg</code> sampai <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod10.jpg</code>.</p>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {gallery.map((pic) => (
                       <div key={pic.id} className="flex items-center justify-between py-2 border-b-2 border-zinc-100 text-xs">
-                        <span className="font-black">{pic.gram} - {pic.loc}</span>
-                        <button onClick={()=>{setGallery(gallery.filter(g => g.id !== pic.id))}} className="bg-red-500 text-white font-black px-2 py-1 text-[10px] border border-[#111]">Hapus</button>
+                        <span className="font-black truncate max-w-[180px]">{pic.img}</span>
+                        <span className="text-[10px] bg-[#e33a24] text-white px-1.5 py-0.5 font-bold">{pic.gram} • {pic.loc}</span>
                       </div>
                     ))}
                   </div>
