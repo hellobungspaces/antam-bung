@@ -18,18 +18,18 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
-  // 10 FOTO DOKUMENTASI COD PERMANEN DI FOLDER PUBLIC/IMAGES/
+  // URUTAN GALERI COD SESUAI PERMINTAAN
   const [gallery, setGallery] = useState([
-    { id: 1, img: "/images/cod1.jpg", gram: "10g", loc: "Klender" },
-    { id: 2, img: "/images/cod22.jpg", gram: "5g", loc: "MCD Duren Sawit" },
-    { id: 3, img: "/images/cod3.jpg", gram: "25g", loc: "Rawamangun" },
-    { id: 4, img: "/images/cod4.jpg", gram: "50g", loc: "Kelapa Gading" },
-    { id: 5, img: "/images/cod5.jpg", gram: "100g", loc: "Sudirman" },
-    { id: 6, img: "/images/cod6.jpg", gram: "1g", loc: "Stasiun Cawang" },
-    { id: 7, img: "/images/cod7.jpg", gram: "2g", loc: "Matraman" },
-    { id: 8, img: "/images/cod8.jpg", gram: "5g", loc: "Kuningan" },
-    { id: 9, img: "/images/cod9.jpg", gram: "10g", loc: "BKT Jaktim" },
-    { id: 10, img: "/images/cod10.jpg", gram: "25g", loc: "Cakung" },
+    { id: 1, img: "/images/cod1.jpg", gram: "1g", loc: "Tanah Koja" },
+    { id: 2, img: "/images/cod2.jpg", gram: "10g", loc: "MCD Duren Sawit" },
+    { id: 3, img: "/images/cod3.jpg", gram: "10g", loc: "Pd. Bambu" },
+    { id: 4, img: "/images/cod4.jpg", gram: "25g", loc: "Pd. Gede" },
+    { id: 5, img: "/images/cod5.jpg", gram: "1g", loc: "Klender" },
+    { id: 6, img: "/images/cod6.jpg", gram: "30g", loc: "Pulo Gadung" },
+    { id: 7, img: "/images/cod7.jpg", gram: "1g", loc: "Klender" },
+    { id: 8, img: "/images/cod8.jpg", gram: "2g", loc: "Rawamangun" },
+    { id: 9, img: "/images/cod9.jpg", gram: "10g", loc: "Klender" },
+    { id: 10, img: "/images/cod10.jpg", gram: "10g", loc: "Palmerah" },
   ]);
 
   const [newGram, setNewGram] = useState("");
@@ -61,7 +61,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV20");
+    const savedData = localStorage.getItem("emasBungV21");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -146,9 +146,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV20") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV21") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV20", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV21", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -603,11 +603,11 @@ export default function AdvancedEmasBungPWA() {
               <div className="space-y-4">
                 <div className="bg-white p-4 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111]">
                   <h3 className="font-black text-xs uppercase mb-3 text-[#e33a24]">Kelola Foto Galeri (10 Slot Permanen)</h3>
-                  <p className="text-[10px] font-bold text-zinc-600 mb-3">Pastikan ke-10 foto asli kamu sudah dimasukkan ke folder <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">public/images/</code> dengan nama file <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod1.jpg</code> sampai <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod10.jpg</code>.</p>
+                  <p className="text-[10px] font-bold text-zinc-600 mb-3">Pastikan file foto <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod1.jpg</code> s.d <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">cod10.jpg</code> sudah dimasukkan ke folder <code className="bg-zinc-100 px-1 py-0.5 border border-[#111]">public/images/</code>.</p>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {gallery.map((pic) => (
                       <div key={pic.id} className="flex items-center justify-between py-2 border-b-2 border-zinc-100 text-xs">
-                        <span className="font-black truncate max-w-[180px]">{pic.img}</span>
+                        <span className="font-black truncate max-w-[150px]">{pic.img}</span>
                         <span className="text-[10px] bg-[#e33a24] text-white px-1.5 py-0.5 font-bold">{pic.gram} • {pic.loc}</span>
                       </div>
                     ))}
