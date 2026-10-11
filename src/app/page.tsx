@@ -46,7 +46,7 @@ export default function AdvancedEmasBungPWA() {
   const [adminTab, setAdminTab] = useState("price");
   const [pinInput, setPinInput] = useState("");
   
-  const [bbGram, setBbGram] = useState(10);
+  const [bbGram, setBbGram] = useState(1);
   const [bbEdition, setBbEdition] = useState("press");
   const [bbCondition, setBbCondition] = useState("mulus"); 
   const [bbEstimate, setBbEstimate] = useState(0);
@@ -57,7 +57,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV26");
+    const savedData = localStorage.getItem("emasBungV27");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -79,6 +79,14 @@ export default function AdvancedEmasBungPWA() {
     return () => clearTimeout(notifTimer);
   }, []);
 
+  // KALKULASI BUYBACK OTOMATIS BERDASARKAN INPUT
+  useEffect(() => {
+    let baseVal = buybackPrice * Number(bbGram || 0);
+    if (bbEdition === "retro") baseVal -= (bbGram * 10000); // Penyesuaian cetakan klasik
+    if (bbCondition === "baret") baseVal -= (bbGram * 15000); // Penyesuaian kondisi baret/buka
+    setBbEstimate(baseVal > 0 ? baseVal : 0);
+  }, [bbGram, bbEdition, bbCondition, buybackPrice]);
+
   if (!isMounted) return null;
 
   const triggerHaptic = () => {
@@ -91,11 +99,15 @@ export default function AdvancedEmasBungPWA() {
     triggerHaptic();
     const existing = cart.find(item => item.gram === gram);
     if (existing) {
-      if (existing.qty < stock) setCart(cart.map(item => item.gram === gram ? { ...item, qty: item.qty + 1 } : item));
-      else alert("Stok tidak cukup!");
+      if (existing.qty < stock) {
+        setCart(cart.map(item => item.gram === gram ? { ...item, qty: item.qty + 1 } : item));
+      } else {
+        alert("Stok kepingan tidak cukup!");
+      }
     } else {
       setCart([...cart, { gram, qty: 1, price }]);
     }
+    setShowCart(true); // Auto buka keranjang biar interaktif
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
@@ -104,7 +116,7 @@ export default function AdvancedEmasBungPWA() {
     triggerHaptic();
     if (cart.length === 0) return;
     let itemsText = cart.map(item => `- ${item.qty}x Antam ${item.gram}gr (Rp ${item.price.toLocaleString('id-ID')})`).join('%0a');
-    let message = `Halo Emas BUNG! Kamu mau order:%0a${itemsText}%0a%0a*Total: Rp ${cartTotal.toLocaleString('id-ID')}*%0a%0aPembayaran resmi hanya via BCA a.n. Gilang Segara Bening atau Cash saat COD. Siap atur jadwal?`;
+    let message = `Halo Emas BUNG! Saya mau order:%0a${itemsText}%0a%0a*Total: Rp ${cartTotal.toLocaleString('id-ID')}*%0a%0aPembayaran resmi via BCA a.n. Gilang Segara Bening atau Cash saat COD. Mohon info jadwal ketersediaannya ya.`;
     
     const newOrder = { id: `ORD-${Date.now().toString().slice(-4)}`, name: "WA Customer", detail: `${cart.length} items - Rp ${cartTotal.toLocaleString('id-ID')}`, status: "Pending" };
     setOrders([newOrder, ...orders]);
@@ -117,7 +129,7 @@ export default function AdvancedEmasBungPWA() {
 
   const handleBuybackWA = () => {
     triggerHaptic();
-    const msg = `Halo Bung, kamu mau jual Antam *${bbGram}gr* (Buyback).%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi app: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan?`;
+    const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${bbGram}gr*.%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi sistem: *Rp ${bbEstimate.toLocaleString('id-ID')}*. Bisa atur jadwal ketemuan COD?`;
     window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
   };
 
@@ -142,9 +154,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV26") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV27") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV26", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV27", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -186,9 +198,9 @@ export default function AdvancedEmasBungPWA() {
             <button onClick={() => window.open(`https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`, "_blank")} className="bg-white text-[#111] px-3 py-1.5 border-2 border-[#111] font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1">
               💬 Chat WA
             </button>
-            <button onClick={() => setShowCart(true)} className="relative bg-[#111] text-white p-2 border-2 border-[#111] shadow-[2px_2px_0px_0px_#fff] active:translate-y-[2px] active:shadow-none transition-all">
+            <button onClick={() => setShowCart(true)} className="relative bg-[#111] text-white p-2 border-2 border-[#111] shadow-[2px_2px_0px_0px_#fff] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              {cart.length > 0 && <span className="absolute -top-3 -right-3 bg-white text-[#e33a24] text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#111]">{cart.length}</span>}
+              {cart.length > 0 && <span className="absolute -top-3 -right-3 bg-white text-[#e33a24] text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#111] animate-bounce">{cart.length}</span>}
             </button>
           </div>
         </div>
@@ -322,16 +334,23 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* JUAL */}
+        {/* JUAL (FIXED & FULL FUNCTIONAL) */}
         {activeTab === "jual" && (
           <section className="p-5 animate-in fade-in slide-in-from-right-2 duration-300 w-full overflow-hidden">
             <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">Jual / Buyback ke BUNG</h2>
-            <p className="text-xs font-bold text-zinc-500 mb-6">Mau cairkan emas Antam kamu? Hitung estimasi harganya di sini. Bisa atur ketemuan di stasiun KRL Jabodetabek atau antar langsung ke rumah!</p>
+            <p className="text-xs font-bold text-zinc-500 mb-6">Mau cairkan emas Antam kamu? Hitung estimasi harganya di sini secara real-time. Bisa atur ketemuan COD di stasiun KRL Jabodetabek!</p>
             
             <div className="bg-white border-2 border-[#111] p-5 shadow-[4px_4px_0px_0px_#111] space-y-4">
               <div>
                 <label className="text-[10px] font-black uppercase tracking-wider block mb-1">Pecahan (Gram):</label>
-                <input type="number" value={bbGram} onChange={(e) => setBbGram(Number(e.target.value))} className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 focus:outline-none focus:border-[#e33a24]" />
+                <input 
+                  type="number" 
+                  min="0.5" 
+                  step="0.5" 
+                  value={bbGram} 
+                  onChange={(e) => setBbGram(Number(e.target.value))} 
+                  className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 focus:outline-none focus:border-[#e33a24] bg-zinc-50" 
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -350,11 +369,11 @@ export default function AdvancedEmasBungPWA() {
                 </div>
               </div>
               <div className="border-t-2 border-dashed border-[#111] pt-4 mt-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Estimasi Cair:</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Estimasi Pencairan:</p>
                 <p className="text-3xl font-black text-[#e33a24] tracking-tight">Rp {bbEstimate.toLocaleString('id-ID')}</p>
               </div>
               <button onClick={handleBuybackWA} className="w-full py-4 mt-2 bg-[#111] text-white font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_#e33a24] active:translate-y-1 active:shadow-none transition-all">
-                Proses Buyback via WA ➔
+                Jual / Buyback via WhatsApp ➔
               </button>
             </div>
           </section>
@@ -449,18 +468,21 @@ export default function AdvancedEmasBungPWA() {
         )}
       </div>
 
-      {/* CART MODAL */}
+      {/* CART MODAL (INTERACTIVE & SMOOTH) */}
       {showCart && (
-        <div className="fixed inset-0 z-50 bg-[#111]/80 backdrop-blur-sm flex justify-end">
+        <div className="fixed inset-0 z-50 bg-[#111]/80 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
           <div className="bg-white w-[85%] max-w-sm h-full border-l-4 border-[#111] p-5 flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex justify-between items-center border-b-4 border-[#111] pb-4 mb-4">
               <h2 className="text-2xl font-black">CART</h2>
-              <button onClick={() => setShowCart(false)} className="font-black text-xl px-2 border-2 border-[#111] hover:bg-[#e33a24] hover:text-white">✕</button>
+              <button onClick={() => setShowCart(false)} className="font-black text-xl px-2 border-2 border-[#111] hover:bg-[#e33a24] hover:text-white transition-colors">✕</button>
             </div>
             
             <div className="flex-1 overflow-y-auto space-y-3 hide-scrollbar">
               {cart.length === 0 ? (
-                <p className="text-sm font-bold text-zinc-400 text-center mt-10 uppercase tracking-widest">Keranjang Kosong</p>
+                <div className="text-center mt-20 space-y-2">
+                  <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Keranjang Kosong</p>
+                  <p className="text-xs text-zinc-500">Yuk pilih pecahan emas ready stock dulu!</p>
+                </div>
               ) : (
                 cart.map((c, i) => (
                   <div key={i} className="border-2 border-[#111] p-3 flex justify-between items-center bg-zinc-50 shadow-[2px_2px_0px_0px_#111]">
