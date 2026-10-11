@@ -20,7 +20,7 @@ export default function AdvancedEmasBungPWA() {
 
   // URUTAN GALERI COD SESUAI PERMINTAAN
   const [gallery, setGallery] = useState([
-    { id: 2, img: "/images/cod2.png", gram: "Random", loc: "Jabodetabek" },
+    { id: 1, img: "/images/cod2.png", gram: "Random", loc: "MCD Duren Sawit" },
   ]);
 
   const [newGram, setNewGram] = useState("");
