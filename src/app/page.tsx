@@ -18,7 +18,10 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
-  const [gallery, setGallery] = useState<{ id: number; img: string; gram: string; loc: string; }[]>([]);
+  const [gallery, setGallery] = useState([
+    { id: 1, img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400", gram: "10g", loc: "Stasiun Klender" },
+    { id: 2, img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400", gram: "5g", loc: "Stasiun Tebet" },
+  ]);
 
   const [newGram, setNewGram] = useState("");
   const [newStock, setNewStock] = useState("");
@@ -53,7 +56,7 @@ export default function AdvancedEmasBungPWA() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV16");
+    const savedData = localStorage.getItem("emasBungV17");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -138,11 +141,11 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV16") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV17") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV16", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV17", JSON.stringify(dataToSave));
     } catch (error) {
-      alert("Penyimpanan penuh! Kurangi ukuran atau jumlah foto galeri.");
+      alert("Penyimpanan lokal penuh!");
       console.error(error);
     }
   };
@@ -363,7 +366,6 @@ export default function AdvancedEmasBungPWA() {
             {gallery.length === 0 ? (
               <div className="bg-white border-2 border-[#111] p-8 text-center shadow-[4px_4px_0px_0px_#111]">
                 <p className="text-xs font-black uppercase text-zinc-400">Belum ada foto dokumentasi COD.</p>
-                <p className="text-[10px] font-bold text-zinc-500 mt-1">Buka Admin Panel (PIN: 0000) untuk upload foto asli kamu!</p>
               </div>
             ) : (
               <div className="columns-2 gap-3 space-y-3 w-full">
@@ -372,6 +374,7 @@ export default function AdvancedEmasBungPWA() {
                     <img 
                       src={pic.img} 
                       alt={`COD Emas ${pic.loc}`}
+                      onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=400"; }}
                       className="w-full min-h-[100px] h-auto object-cover bg-zinc-200" 
                     />
                     <div className="p-2 border-t-2 border-[#111] bg-white flex justify-between items-center">
@@ -600,36 +603,28 @@ export default function AdvancedEmasBungPWA() {
             {adminTab === 'gallery' && (
               <div className="space-y-4">
                 <div className="bg-white p-4 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111] space-y-3">
-                  <h3 className="font-black text-xs uppercase text-[#e33a24]">Upload Foto COD Baru</h3>
+                  <h3 className="font-black text-xs uppercase text-[#e33a24]">Tambah Foto COD Baru (URL)</h3>
                   <div>
-                    <label className="text-[9px] font-black uppercase text-zinc-500 block mb-1">Pilih File Foto Dari Komputer:</label>
+                    <label className="text-[9px] font-black uppercase text-zinc-500 block mb-1">Link URL Foto:</label>
                     <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e)=>{
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setNewGalleryImg(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }} 
-                      className="w-full border-2 border-[#111] p-2 text-xs font-bold bg-white file:mr-4 file:py-1 file:px-3 file:border-0 file:text-xs file:font-black file:bg-[#111] file:text-white" 
+                      type="text" 
+                      placeholder="https://images.unsplash.com/... atau link gambar" 
+                      value={newGalleryImg} 
+                      onChange={(e)=>setNewGalleryImg(e.target.value)} 
+                      className="w-full border-2 border-[#111] p-2 text-xs font-bold bg-white" 
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="text" placeholder="Gram (cth: 10g)" value={newGalleryGram} onChange={(e)=>setNewGalleryGram(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
-                    <input type="text" placeholder="Lokasi (cth: Stasiun Bekasi)" value={newGalleryLoc} onChange={(e)=>setNewGalleryLoc(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
+                    <input type="text" placeholder="Lokasi (cth: Stasiun Klender)" value={newGalleryLoc} onChange={(e)=>setNewGalleryLoc(e.target.value)} className="border-2 border-[#111] p-2 text-xs font-bold" />
                   </div>
                   <button onClick={()=>{
-                    if(!newGalleryImg || !newGalleryLoc) return alert("Pilih foto dan isi lokasi terlebih dahulu!");
+                    if(!newGalleryImg || !newGalleryLoc) return alert("Isi URL foto dan lokasi dengan benar!");
                     setGallery([{ id: Date.now(), img: newGalleryImg, gram: newGalleryGram || "5g", loc: newGalleryLoc }, ...gallery]);
                     setNewGalleryImg(""); setNewGalleryGram(""); setNewGalleryLoc("");
-                    alert("Foto galeri berhasil di-upload!");
+                    alert("Foto galeri berhasil ditambahkan!");
                   }} className="w-full bg-[#111] text-white py-2 font-black text-xs uppercase">
-                    + Upload Foto Galeri
+                    + Tambah Foto Galeri
                   </button>
                 </div>
 
