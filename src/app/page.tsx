@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 
 export default function AdvancedEmasBungPWA() {
   const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // NEW: State buat Skeleton Loader
+  
   const [basePrice, setBasePrice] = useState(2592000); 
   const [buybackPrice, setBuybackPrice] = useState(2401000);
   const [currentDate, setCurrentDate] = useState("");
@@ -35,7 +37,6 @@ export default function AdvancedEmasBungPWA() {
   const [showPushNotif, setShowPushNotif] = useState(false);
   const [removingItem, setRemovingItem] = useState<number | null>(null);
   
-  // STATE TOAST FEEDBACK KERANJANG
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
@@ -47,7 +48,6 @@ export default function AdvancedEmasBungPWA() {
   const [adminTab, setAdminTab] = useState("price");
   const [pinInput, setPinInput] = useState("");
   
-  // STATE BUYBACK
   const [bbGram, setBbGram] = useState<string>("1");
   const [bbEdition, setBbEdition] = useState<string>("press");
   const [bbCondition, setBbCondition] = useState<string>("mulus"); 
@@ -62,7 +62,7 @@ export default function AdvancedEmasBungPWA() {
     const now = new Date();
     const defaultFormattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 
-    const savedData = localStorage.getItem("emasBungV46"); 
+    const savedData = localStorage.getItem("emasBungV47"); 
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -80,12 +80,21 @@ export default function AdvancedEmasBungPWA() {
       setCurrentDate(defaultFormattedDate);
     }
     
+    // Simulate Network Fetch untuk Skeleton Loader (800ms)
+    const loadTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+
     const notifTimer = setTimeout(() => {
       setShowPushNotif(true);
       if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(15);
       setTimeout(() => setShowPushNotif(false), 6000);
-    }, 2500);
-    return () => clearTimeout(notifTimer);
+    }, 3500);
+
+    return () => {
+      clearTimeout(loadTimer);
+      clearTimeout(notifTimer);
+    };
   }, []);
 
   const safeBuybackPrice = Number(buybackPrice) || 2401000;
@@ -95,7 +104,6 @@ export default function AdvancedEmasBungPWA() {
   if (bbCondition === "baret") calculatedBbEstimate -= (bbGramNum * 15000);
   calculatedBbEstimate = Math.max(0, Math.round(calculatedBbEstimate));
 
-  // ODOMETER TICKING EFFECT UNTUK BUYBACK
   useEffect(() => {
     let start = displayEstimate;
     const end = calculatedBbEstimate;
@@ -197,9 +205,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV46") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV47") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, currentDate, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV46", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV47", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -218,7 +226,6 @@ export default function AdvancedEmasBungPWA() {
   return (
     <main className="min-h-screen bg-[#fcfcf9] text-[#111111] font-sans selection:bg-[#FFD700] selection:text-[#111] pb-28 relative overflow-x-hidden max-w-md mx-auto shadow-2xl border-x-2 border-[#111]">
       
-      {/* PUSH NOTIFICATION */}
       <div className={`fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-sm z-50 transition-all duration-500 ease-out ${showPushNotif ? "translate-y-0 opacity-100" : "-translate-y-32 opacity-0 pointer-events-none"}`}>
         <div className="bg-white border-2 border-[#111] p-3.5 rounded-2xl shadow-[4px_4px_0px_0px_#111] flex gap-3 items-start">
           <div className="bg-[#FFD700] p-2 flex items-center justify-center border-2 border-[#111] rounded-xl shrink-0 mt-0.5">
@@ -236,7 +243,6 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </div>
 
-      {/* FLOATING TOAST NOTIFICATION */}
       <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out ${showToast ? "translate-y-0 opacity-100 scale-100" : "translate-y-10 opacity-0 scale-95 pointer-events-none"}`}>
         <div className="bg-[#111] text-[#FFD700] rounded-2xl px-5 py-3 shadow-[0px_8px_16px_rgba(0,0,0,0.2)] flex items-center gap-2.5 border-2 border-white/10">
           <span className="text-sm">🛒</span>
@@ -244,17 +250,14 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </div>
 
-      {/* HEADER NAVBAR (THE SOFT MESH GLOW EDITION) */}
       <section className="bg-[#FFD700] text-[#111] pt-6 pb-6 px-5 border-b-4 border-[#111] rounded-b-3xl relative z-10 shadow-sm overflow-hidden">
         
-        {/* MESH GRADIENT BLOBS - Background Effects */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
           <div className="absolute -top-16 -left-16 w-56 h-56 bg-[#FF9D00] rounded-full blur-[60px] opacity-70 mix-blend-multiply"></div>
           <div className="absolute top-10 -right-16 w-64 h-64 bg-[#FFAA00] rounded-full blur-[70px] opacity-60 mix-blend-multiply"></div>
           <div className="absolute -bottom-20 left-1/4 w-48 h-48 bg-[#FFE55C] rounded-full blur-[50px] opacity-90 mix-blend-screen"></div>
         </div>
 
-        {/* HEADER CONTENT */}
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-6">
             <h1 onClick={handleLogoTap} className="text-2xl font-black tracking-tighter cursor-pointer flex items-center gap-1.5">
@@ -275,25 +278,36 @@ export default function AdvancedEmasBungPWA() {
             </div>
           </div>
 
-          {/* HERO SECTION WITH GLASSMORPHISM */}
           {activeTab === "beranda" && (
             <div className="animate-in fade-in duration-300">
-              <div className="bg-white/60 border-2 border-[#111] p-5 mb-4 rounded-3xl backdrop-blur-md shadow-[4px_4px_0px_0px_#111]">
-                <div className="flex justify-between items-start mb-3">
-                  <p className="text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5 text-[#111]">
-                    <svg className="w-3 h-3 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    HARGA ANTAM • 1G
-                  </p>
-                  <p className="text-[10px] font-bold bg-[#111] text-[#FFD700] rounded-lg px-2 py-0.5 uppercase tracking-wider">{currentDate}</p>
+              
+              {/* SKELETON LOADER UNTUK HERO SECTION */}
+              {isLoading ? (
+                <div className="bg-white/40 border-2 border-[#111]/10 p-5 mb-4 rounded-3xl backdrop-blur-md shadow-sm animate-pulse">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="h-3 w-24 bg-black/10 rounded"></div>
+                    <div className="h-4 w-16 bg-black/10 rounded"></div>
+                  </div>
+                  <div className="h-10 w-48 bg-black/10 rounded mb-2 mt-4"></div>
                 </div>
-                
-                <div className="flex items-start gap-1 font-black leading-none tracking-tighter text-[#111]">
-                  <span className="text-5xl leading-none drop-shadow-sm">Rp {(basePrice/1000).toLocaleString("id-ID")}</span>
-                  <div className="text-xl leading-tight flex flex-col pt-1 opacity-90">
-                    <span>.000</span>
+              ) : (
+                <div className="bg-white/60 border-2 border-[#111] p-5 mb-4 rounded-3xl backdrop-blur-md shadow-[4px_4px_0px_0px_#111] animate-in fade-in zoom-in-95 duration-500">
+                  <div className="flex justify-between items-start mb-3">
+                    <p className="text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5 text-[#111]">
+                      <svg className="w-3 h-3 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                      HARGA ANTAM • 1G
+                    </p>
+                    <p className="text-[10px] font-bold bg-[#111] text-[#FFD700] rounded-lg px-2 py-0.5 uppercase tracking-wider">{currentDate}</p>
+                  </div>
+                  
+                  <div className="flex items-start gap-1 font-black leading-none tracking-tighter text-[#111]">
+                    <span className="text-5xl leading-none drop-shadow-sm">Rp {(basePrice/1000).toLocaleString("id-ID")}</span>
+                    <div className="text-xl leading-tight flex flex-col pt-1 opacity-90">
+                      <span>.000</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex border-2 border-[#111] rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm shadow-[4px_4px_0px_0px_#111]">
                 <div className="flex-1 p-3 text-center border-r-2 border-[#111]">
@@ -302,7 +316,7 @@ export default function AdvancedEmasBungPWA() {
                 </div>
                 <div className="flex-1 p-3 text-center bg-[#111] text-[#FFD700]">
                   <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5">Terima Buyback</p>
-                  <p className="text-sm font-black tracking-tight">Rp {buybackPrice.toLocaleString("id-ID")}</p>
+                  <p className="text-sm font-black tracking-tight">Rp {isLoading ? "..." : buybackPrice.toLocaleString("id-ID")}</p>
                 </div>
               </div>
             </div>
@@ -310,7 +324,6 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </section>
 
-      {/* BREAKING NEWS MARQUEE */}
       <div className="bg-[#111] text-[#FFD700] text-[11px] font-bold py-2.5 overflow-hidden flex whitespace-nowrap -mt-4 pt-6 pb-3 rounded-b-3xl relative z-0">
         <div className="animate-marquee inline-block">
           <span className="mx-2 tracking-widest">{breakingNewsText}</span>
@@ -318,13 +331,11 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </div>
 
-      {/* TABS CONTENT */}
       <div className="min-h-[50vh] relative z-0 pb-10 mt-4">
         
-        {/* BERANDA */}
+        {/* BERANDA TABS */}
         {activeTab === "beranda" && (
           <div className="animate-in fade-in duration-300 space-y-6">
-            
             <section className="p-5 pb-0">
               <div className="flex justify-between items-end mb-4">
                 <div>
@@ -337,28 +348,39 @@ export default function AdvancedEmasBungPWA() {
               </div>
               
               <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar px-1">
-                {inventory.filter(i => i.stock > 0).map((item, idx) => {
-                  const pPrice = getProductPrice(item.gram, item.discount);
-                  return (
-                    <div 
-                      key={item.gram} 
-                      style={{ animationDelay: `${idx * 100}ms` }}
-                      className="min-w-[135px] bg-white border-2 border-[#111] rounded-2xl p-4 flex flex-col justify-between shrink-0 shadow-[4px_4px_0px_0px_#111] animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-500"
-                    >
-                      <div className="border-b-2 border-zinc-100 pb-2 mb-3">
-                        <h3 className="text-3xl font-black tracking-tighter leading-none flex items-end gap-0.5">
-                          {item.gram}<span className="text-sm pb-0.5">gr</span>
-                        </h3>
-                        <span className="text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 rounded-lg px-1.5 py-0.5 mt-2 inline-block uppercase">Sisa {item.stock} Keping</span>
-                      </div>
-                      <p className="text-xs font-black mb-3">Rp {(pPrice/1000000).toFixed(2)} jt</p>
-                      
-                      <button onClick={() => handleAddToCart(item.gram, pPrice, item.stock)} className="w-full bg-[#FFD700] text-[#111] text-[10px] font-black py-2 rounded-xl uppercase border-2 border-[#111] shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none transition-all">
-                        + Keranjang
-                      </button>
+                {/* SKELETON LOADER CARD HORIZONTAL */}
+                {isLoading ? (
+                  [1, 2, 3].map((n) => (
+                    <div key={n} className="min-w-[135px] h-[150px] bg-zinc-200 border-2 border-zinc-300 rounded-2xl p-4 flex flex-col justify-between shrink-0 animate-pulse">
+                      <div className="h-8 w-16 bg-zinc-300 rounded mb-3"></div>
+                      <div className="h-3 w-20 bg-zinc-300 rounded mb-4"></div>
+                      <div className="h-8 w-full bg-zinc-300 rounded-xl mt-auto"></div>
                     </div>
-                  )
-                })}
+                  ))
+                ) : (
+                  inventory.filter(i => i.stock > 0).map((item, idx) => {
+                    const pPrice = getProductPrice(item.gram, item.discount);
+                    return (
+                      <div 
+                        key={item.gram} 
+                        style={{ animationDelay: `${idx * 100}ms` }}
+                        className="min-w-[135px] bg-white border-2 border-[#111] rounded-2xl p-4 flex flex-col justify-between shrink-0 shadow-[4px_4px_0px_0px_#111] animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-500"
+                      >
+                        <div className="border-b-2 border-zinc-100 pb-2 mb-3">
+                          <h3 className="text-3xl font-black tracking-tighter leading-none flex items-end gap-0.5">
+                            {item.gram}<span className="text-sm pb-0.5">gr</span>
+                          </h3>
+                          <span className="text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 rounded-lg px-1.5 py-0.5 mt-2 inline-block uppercase">Sisa {item.stock} Keping</span>
+                        </div>
+                        <p className="text-xs font-black mb-3">Rp {(pPrice/1000000).toFixed(2)} jt</p>
+                        
+                        <button onClick={() => handleAddToCart(item.gram, pPrice, item.stock)} className="w-full bg-[#FFD700] text-[#111] text-[10px] font-black py-2 rounded-xl uppercase border-2 border-[#111] shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none transition-all">
+                          + Keranjang
+                        </button>
+                      </div>
+                    )
+                  })
+                )}
               </div>
             </section>
 
@@ -376,39 +398,55 @@ export default function AdvancedEmasBungPWA() {
           </div>
         )}
 
-        {/* PRODUK */}
+        {/* PRODUK TABS */}
         {activeTab === "produk" && (
           <section className="p-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <h2 className="text-2xl font-black tracking-tight mb-4 uppercase">Katalog BUNG</h2>
             <div className="w-full">
               <div className="grid grid-cols-2 gap-4 w-full">
-                {inventory.map((item, idx) => {
-                  const finalPrice = getProductPrice(item.gram, item.discount);
-                  const isReady = item.stock > 0;
-                  return (
-                    <div 
-                      key={item.gram} 
-                      style={{ animationDelay: `${idx * 75}ms` }}
-                      className={`bg-white border-2 border-[#111] rounded-2xl p-4 flex flex-col justify-between min-h-[150px] animate-in fade-in slide-in-from-bottom-4 fill-mode-both ${!isReady ? 'opacity-60 grayscale bg-zinc-100' : 'shadow-[4px_4px_0px_0px_#111]'}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-2xl font-black tracking-tighter leading-none">{item.gram}gr</h3>
-                        <span className={`text-[8px] font-black rounded-md px-1.5 py-0.5 border border-[#111] ${isReady ? 'bg-[#FFD700] text-[#111]' : 'bg-[#111] text-white'}`}>
-                          {isReady ? `SISA ${item.stock}` : 'KOSONG'}
-                        </span>
-                      </div>
-                      <div className="mt-auto pt-3">
-                        <p className="text-xs font-black mb-2">Rp {finalPrice.toLocaleString('id-ID')}</p>
-                        <button 
-                          disabled={!isReady}
-                          onClick={() => handleAddToCart(item.gram, finalPrice, item.stock)} 
-                          className={`w-full text-[9px] font-black py-2 rounded-xl border-2 border-[#111] uppercase active:scale-95 transition-all ${isReady ? 'bg-[#FFD700] text-[#111] shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none' : 'bg-transparent text-[#111]'}`}>
-                          {isReady ? 'Add to Cart' : 'Sold Out'}
-                        </button>
-                      </div>
+                {/* SKELETON LOADER GRID */}
+                {isLoading ? (
+                  [1, 2, 3, 4].map((n) => (
+                    <div key={n} className="bg-zinc-200 border-2 border-zinc-300 rounded-2xl p-4 flex flex-col justify-between min-h-[150px] animate-pulse">
+                       <div className="flex justify-between items-start mb-4">
+                          <div className="h-6 w-12 bg-zinc-300 rounded"></div>
+                          <div className="h-4 w-10 bg-zinc-300 rounded"></div>
+                       </div>
+                       <div className="mt-auto">
+                          <div className="h-3 w-20 bg-zinc-300 rounded mb-3"></div>
+                          <div className="h-8 w-full bg-zinc-300 rounded-xl"></div>
+                       </div>
                     </div>
-                  )
-                })}
+                  ))
+                ) : (
+                  inventory.map((item, idx) => {
+                    const finalPrice = getProductPrice(item.gram, item.discount);
+                    const isReady = item.stock > 0;
+                    return (
+                      <div 
+                        key={item.gram} 
+                        style={{ animationDelay: `${idx * 75}ms` }}
+                        className={`bg-white border-2 border-[#111] rounded-2xl p-4 flex flex-col justify-between min-h-[150px] animate-in fade-in slide-in-from-bottom-4 fill-mode-both ${!isReady ? 'opacity-60 grayscale bg-zinc-100' : 'shadow-[4px_4px_0px_0px_#111]'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-2xl font-black tracking-tighter leading-none">{item.gram}gr</h3>
+                          <span className={`text-[8px] font-black rounded-md px-1.5 py-0.5 border border-[#111] ${isReady ? 'bg-[#FFD700] text-[#111]' : 'bg-[#111] text-white'}`}>
+                            {isReady ? `SISA ${item.stock}` : 'KOSONG'}
+                          </span>
+                        </div>
+                        <div className="mt-auto pt-3">
+                          <p className="text-xs font-black mb-2">Rp {finalPrice.toLocaleString('id-ID')}</p>
+                          <button 
+                            disabled={!isReady}
+                            onClick={() => handleAddToCart(item.gram, finalPrice, item.stock)} 
+                            className={`w-full text-[9px] font-black py-2 rounded-xl border-2 border-[#111] uppercase active:scale-95 transition-all ${isReady ? 'bg-[#FFD700] text-[#111] shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none' : 'bg-transparent text-[#111]'}`}>
+                            {isReady ? 'Add to Cart' : 'Sold Out'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
               </div>
             </div>
           </section>

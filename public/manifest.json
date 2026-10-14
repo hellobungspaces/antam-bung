@@ -1,0 +1,17 @@
+{
+  "name": "Emas BUNG | Antam COD",
+  "short_name": "Emas BUNG",
+  "description": "Jual Beli Emas Antam Aman, COD Jabodetabek.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fcfcf9",
+  "theme_color": "#FFD700",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
