@@ -62,7 +62,7 @@ export default function AdvancedEmasBungPWA() {
     const now = new Date();
     const defaultFormattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 
-    const savedData = localStorage.getItem("emasBungV45"); 
+    const savedData = localStorage.getItem("emasBungV46"); 
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -149,7 +149,7 @@ export default function AdvancedEmasBungPWA() {
     setTimeout(() => {
       setCart(cart.filter(x => x.gram !== gram));
       setRemovingItem(null);
-    }, 300); // 300ms buat nunggu animasi slide-out kelar
+    }, 300);
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
@@ -197,9 +197,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV45") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV46") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, currentDate, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV45", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV46", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -244,59 +244,70 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </div>
 
-      {/* HEADER NAVBAR */}
-      <section className="bg-[#FFD700] text-[#111] pt-6 pb-6 px-5 border-b-4 border-[#111] rounded-b-3xl relative z-10 shadow-sm">
-        <div className="flex justify-between items-center mb-5">
-          <h1 onClick={handleLogoTap} className="text-2xl font-black tracking-tighter cursor-pointer flex items-center gap-1.5">
-            EMAS BUNG <span className="w-2 h-2 bg-[#111] rounded-full animate-pulse"></span>
-          </h1>
-          <div className="flex gap-2">
-            <button onClick={() => window.open(`https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`, "_blank")} className="bg-white text-[#111] px-3 py-1.5 border-2 border-[#111] rounded-xl font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1">
-              💬 Chat WA
-            </button>
-            <button onClick={() => setShowCart(true)} className="relative bg-[#111] text-white p-2 border-2 border-[#111] rounded-xl shadow-[2px_2px_0px_0px_#fff] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              {totalCartItemsCount > 0 && (
-                <span key={totalCartItemsCount} className="absolute -top-3 -right-3 bg-[#FFD700] text-[#111] text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#111] animate-in zoom-in duration-300">
-                  {totalCartItemsCount}
-                </span>
-              )}
-            </button>
-          </div>
+      {/* HEADER NAVBAR (THE SOFT MESH GLOW EDITION) */}
+      <section className="bg-[#FFD700] text-[#111] pt-6 pb-6 px-5 border-b-4 border-[#111] rounded-b-3xl relative z-10 shadow-sm overflow-hidden">
+        
+        {/* MESH GRADIENT BLOBS - Background Effects */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-16 -left-16 w-56 h-56 bg-[#FF9D00] rounded-full blur-[60px] opacity-70 mix-blend-multiply"></div>
+          <div className="absolute top-10 -right-16 w-64 h-64 bg-[#FFAA00] rounded-full blur-[70px] opacity-60 mix-blend-multiply"></div>
+          <div className="absolute -bottom-20 left-1/4 w-48 h-48 bg-[#FFE55C] rounded-full blur-[50px] opacity-90 mix-blend-screen"></div>
         </div>
 
-        {/* HERO SECTION */}
-        {activeTab === "beranda" && (
-          <div className="animate-in fade-in duration-300">
-            <div className="bg-white/80 border-2 border-[#111]/30 p-4 mb-4 rounded-2xl backdrop-blur-md">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5 text-[#111]">
-                  <svg className="w-3 h-3 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                  HARGA ANTAM • 1G
-                </p>
-                <p className="text-[10px] font-bold bg-[#111] text-[#FFD700] rounded-lg px-2 py-0.5 uppercase tracking-wider">{currentDate}</p>
+        {/* HEADER CONTENT */}
+        <div className="relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <h1 onClick={handleLogoTap} className="text-2xl font-black tracking-tighter cursor-pointer flex items-center gap-1.5">
+              EMAS BUNG <span className="w-2 h-2 bg-[#111] rounded-full animate-pulse"></span>
+            </h1>
+            <div className="flex gap-2">
+              <button onClick={() => window.open(`https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`, "_blank")} className="bg-white/90 backdrop-blur-sm text-[#111] px-3 py-1.5 border-2 border-[#111] rounded-xl font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_#111] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1">
+                💬 Chat WA
+              </button>
+              <button onClick={() => setShowCart(true)} className="relative bg-[#111] text-white p-2 border-2 border-[#111] rounded-xl shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                {totalCartItemsCount > 0 && (
+                  <span key={totalCartItemsCount} className="absolute -top-3 -right-3 bg-[#FFD700] text-[#111] text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#111] animate-in zoom-in duration-300">
+                    {totalCartItemsCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* HERO SECTION WITH GLASSMORPHISM */}
+          {activeTab === "beranda" && (
+            <div className="animate-in fade-in duration-300">
+              <div className="bg-white/60 border-2 border-[#111] p-5 mb-4 rounded-3xl backdrop-blur-md shadow-[4px_4px_0px_0px_#111]">
+                <div className="flex justify-between items-start mb-3">
+                  <p className="text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5 text-[#111]">
+                    <svg className="w-3 h-3 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    HARGA ANTAM • 1G
+                  </p>
+                  <p className="text-[10px] font-bold bg-[#111] text-[#FFD700] rounded-lg px-2 py-0.5 uppercase tracking-wider">{currentDate}</p>
+                </div>
+                
+                <div className="flex items-start gap-1 font-black leading-none tracking-tighter text-[#111]">
+                  <span className="text-5xl leading-none drop-shadow-sm">Rp {(basePrice/1000).toLocaleString("id-ID")}</span>
+                  <div className="text-xl leading-tight flex flex-col pt-1 opacity-90">
+                    <span>.000</span>
+                  </div>
+                </div>
               </div>
-              
-              <div className="flex items-start gap-1 font-black leading-none tracking-tighter text-[#111]">
-                <span className="text-5xl leading-none">Rp {(basePrice/1000).toLocaleString("id-ID")}</span>
-                <div className="text-lg leading-tight flex flex-col pt-1">
-                  <span>.000</span>
+
+              <div className="flex border-2 border-[#111] rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm shadow-[4px_4px_0px_0px_#111]">
+                <div className="flex-1 p-3 text-center border-r-2 border-[#111]">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#111]/80 mb-0.5">Spread Jual-Beli</p>
+                  <p className="text-sm font-black tracking-tight text-[#111]">Kompetitif</p>
+                </div>
+                <div className="flex-1 p-3 text-center bg-[#111] text-[#FFD700]">
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5">Terima Buyback</p>
+                  <p className="text-sm font-black tracking-tight">Rp {buybackPrice.toLocaleString("id-ID")}</p>
                 </div>
               </div>
             </div>
-
-            <div className="flex border-2 border-[#111] rounded-2xl overflow-hidden bg-white shadow-[4px_4px_0px_0px_#111]">
-              <div className="flex-1 p-3 text-center border-r-2 border-[#111]">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-[#111]/80 mb-0.5">Spread Jual-Beli</p>
-                <p className="text-sm font-black tracking-tight text-[#111]">Kompetitif</p>
-              </div>
-              <div className="flex-1 p-3 text-center bg-[#111] text-[#FFD700]">
-                <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5">Terima Buyback</p>
-                <p className="text-sm font-black tracking-tight">Rp {buybackPrice.toLocaleString("id-ID")}</p>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </section>
 
       {/* BREAKING NEWS MARQUEE */}
@@ -595,19 +606,16 @@ export default function AdvancedEmasBungPWA() {
         )}
       </div>
 
-      {/* BOTTOMSHEET CART MODAL DENGAN BACKDROP BLUR */}
+      {/* BOTTOMSHEET CART MODAL */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Overlay / Backdrop */}
           <div 
             onClick={() => setShowCart(false)} 
             className="absolute inset-0 bg-[#111]/60 backdrop-blur-sm animate-in fade-in duration-300"
           ></div>
           
-          {/* Bottomsheet Panel */}
           <div className="bg-white w-full max-w-md mx-auto h-[80vh] rounded-t-3xl border-t-2 border-x-2 border-[#111] p-5 flex flex-col relative z-10 animate-in slide-in-from-bottom-full duration-300 ease-out shadow-[0px_-8px_20px_rgba(0,0,0,0.1)]">
             
-            {/* Drag Handle */}
             <div className="w-12 h-1.5 bg-zinc-300 rounded-full mx-auto mb-6"></div>
 
             <div className="flex justify-between items-center pb-4 mb-4">
@@ -665,7 +673,7 @@ export default function AdvancedEmasBungPWA() {
         </div>
       )}
 
-      {/* BOTTOM NAVIGATION WITH GLASSMORPHISM */}
+      {/* BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/80 backdrop-blur-md border-t-2 border-[#111] rounded-t-3xl flex justify-between px-3 pt-3 pb-6 z-40 shadow-[0px_-4px_20px_rgba(0,0,0,0.05)]">
         {[
           { id:"beranda", label:"Beranda", icon: <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg> }, 
@@ -715,7 +723,6 @@ export default function AdvancedEmasBungPWA() {
               ))}
             </div>
 
-            {/* TAB PRICE & TANGGAL */}
             {adminTab === 'price' && (
               <div className="space-y-4">
                 <div className="bg-white p-5 border-2 border-[#111] rounded-3xl shadow-[4px_4px_0px_0px_#111] space-y-4">
