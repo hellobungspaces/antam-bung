@@ -5,7 +5,7 @@ export default function AdvancedEmasBungPWA() {
   const [isMounted, setIsMounted] = useState(false);
   const [basePrice, setBasePrice] = useState(2592000); 
   const [buybackPrice, setBuybackPrice] = useState(2401000);
-  const [currentDate, setCurrentDate] = useState("14 OKT 2026");
+  const [currentDate, setCurrentDate] = useState("");
   
   const [inventory, setInventory] = useState([
     { gram: 0.5, stock: 8, discount: 0 },
@@ -57,25 +57,27 @@ export default function AdvancedEmasBungPWA() {
   useEffect(() => {
     setIsMounted(true);
     
-    // Set default tanggal otomatis real-time format Indonesia jika belum ada di storage
+    // Set default tanggal otomatis real-time
     const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
     const now = new Date();
     const defaultFormattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-    setCurrentDate(defaultFormattedDate);
 
-    const savedData = localStorage.getItem("emasBungV43"); 
+    const savedData = localStorage.getItem("emasBungV44"); 
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
         if (parsed.basePrice) setBasePrice(parsed.basePrice);
         if (parsed.buybackPrice) setBuybackPrice(parsed.buybackPrice);
-        if (parsed.currentDate) setCurrentDate(parsed.currentDate);
         if (parsed.inventory) setInventory(parsed.inventory);
         if (parsed.gallery) setGallery(parsed.gallery);
         if (parsed.orders) setOrders(parsed.orders);
+        setCurrentDate(parsed.currentDate || defaultFormattedDate);
       } catch (err) {
         console.error("Storage parse error", err);
+        setCurrentDate(defaultFormattedDate);
       }
+    } else {
+      setCurrentDate(defaultFormattedDate);
     }
     
     const notifTimer = setTimeout(() => {
@@ -170,9 +172,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV43") || "{}");
+      const existing = JSON.parse(localStorage.getItem("emasBungV44") || "{}");
       const dataToSave = { ...existing, basePrice, buybackPrice, currentDate, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV43", JSON.stringify(dataToSave));
+      localStorage.setItem("emasBungV44", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -408,7 +410,7 @@ export default function AdvancedEmasBungPWA() {
                     className={`flex flex-col items-center justify-center p-3 border-2 transition-all active:scale-95 ${bbEdition === 'retro' ? 'bg-[#FFD700] border-[#111] text-[#111] shadow-[2px_2px_0px_0px_#111]' : 'bg-white border-[#111] text-zinc-500 hover:bg-zinc-50'}`}
                   >
                     <span className="font-black text-xs uppercase">Klasik</span>
-                    <span className={`text-[9px] font-bold mt-1 ${bbEdition === 'retro' ? 'text-[#111]/70' : 'text-zinc-500'}`}>10rb/gr</span>
+                    <span className={`text-[9px] font-bold mt-1 ${bbEdition === 'retro' ? 'text-[#111]/70' : 'text-zinc-500'}`}>- 10rb/gr</span>
                   </button>
                 </div>
               </div>
@@ -439,7 +441,7 @@ export default function AdvancedEmasBungPWA() {
                       </div>
                       <span className="font-black text-xs uppercase">Baret / Buka Segel</span>
                     </div>
-                    <span className={`text-[9px] font-bold ${bbCondition === 'baret' ? 'text-[#111]/70' : 'text-zinc-500'}`}>15rb/gr</span>
+                    <span className={`text-[9px] font-bold ${bbCondition === 'baret' ? 'text-[#111]/70' : 'text-zinc-500'}`}>- 15rb/gr</span>
                   </button>
                 </div>
               </div>
@@ -664,19 +666,31 @@ export default function AdvancedEmasBungPWA() {
               ))}
             </div>
 
+            {/* TAB PRICE & TANGGAL */}
             {adminTab === 'price' && (
-              <div className="bg-white p-5 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111] space-y-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase">Base Jual (1g):</label>
-                  <input type="number" value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 outline-none focus:border-[#FFD700]" />
+              <div className="space-y-4">
+                <div className="bg-white p-5 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111] space-y-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-[#997404]">Base Jual (1g):</label>
+                    <input type="number" value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 mt-1 outline-none focus:border-[#FFD700]" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-[#997404]">Buyback Base (1g):</label>
+                    <input type="number" value={buybackPrice} onChange={(e) => setBuybackPrice(Number(e.target.value))} className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 mt-1 outline-none focus:border-[#FFD700]" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase">Buyback Base (1g):</label>
-                  <input type="number" value={buybackPrice} onChange={(e) => setBuybackPrice(Number(e.target.value))} className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 outline-none focus:border-[#FFD700]" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase">Tanggal Tampilan (Custom):</label>
-                  <input type="text" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="w-full border-2 border-[#111] font-black text-lg py-2 px-3 outline-none focus:border-[#FFD700]" placeholder="Contoh: 14 OKT 2026" />
+                
+                {/* FORM TANGGAL YANG SUPER NOTICEABLE */}
+                <div className="bg-[#FFD700]/20 p-5 border-4 border-[#111] shadow-[4px_4px_0px_0px_#111]">
+                  <h3 className="font-black text-sm uppercase mb-2 text-[#111] flex items-center gap-2">🗓️ Set Tanggal Manual</h3>
+                  <input 
+                    type="text" 
+                    value={currentDate} 
+                    onChange={(e) => setCurrentDate(e.target.value)} 
+                    className="w-full border-2 border-[#111] font-black text-lg py-2 px-3 outline-none focus:border-[#FFD700] bg-white" 
+                    placeholder="Contoh: 14 OKT 2026" 
+                  />
+                  <p className="text-[10px] font-bold text-zinc-600 mt-2 leading-tight">Ubah tanggal ini kalau lu mau nampilin tanggal *update* versi lu sendiri di halaman depan.</p>
                 </div>
               </div>
             )}
