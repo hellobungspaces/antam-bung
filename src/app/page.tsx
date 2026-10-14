@@ -5,6 +5,7 @@ export default function AdvancedEmasBungPWA() {
   const [isMounted, setIsMounted] = useState(false);
   const [basePrice, setBasePrice] = useState(2592000); 
   const [buybackPrice, setBuybackPrice] = useState(2401000);
+  const [currentDate, setCurrentDate] = useState("14 OKT 2026");
   
   const [inventory, setInventory] = useState([
     { gram: 0.5, stock: 8, discount: 0 },
@@ -32,6 +33,11 @@ export default function AdvancedEmasBungPWA() {
   const [activeTab, setActiveTab] = useState("beranda");
   const [showCart, setShowCart] = useState(false);
   const [showPushNotif, setShowPushNotif] = useState(false);
+  
+  // STATE TOAST FEEDBACK KERANJANG
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
+
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   
   const [tapCount, setTapCount] = useState(0);
@@ -47,16 +53,23 @@ export default function AdvancedEmasBungPWA() {
 
   const SECRET_PIN = "0000"; 
   const WA_NUMBER = "628176767166";
-  const currentDate = "11 OKT 2026";
 
   useEffect(() => {
     setIsMounted(true);
-    const savedData = localStorage.getItem("emasBungV42"); 
+    
+    // Set default tanggal otomatis real-time format Indonesia jika belum ada di storage
+    const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+    const now = new Date();
+    const defaultFormattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    setCurrentDate(defaultFormattedDate);
+
+    const savedData = localStorage.getItem("emasBungV43"); 
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
         if (parsed.basePrice) setBasePrice(parsed.basePrice);
         if (parsed.buybackPrice) setBuybackPrice(parsed.buybackPrice);
+        if (parsed.currentDate) setCurrentDate(parsed.currentDate);
         if (parsed.inventory) setInventory(parsed.inventory);
         if (parsed.gallery) setGallery(parsed.gallery);
         if (parsed.orders) setOrders(parsed.orders);
@@ -91,19 +104,29 @@ export default function AdvancedEmasBungPWA() {
   const handleAddToCart = (gram: number, price: number, stock: number) => {
     triggerHaptic();
     const existing = cart.find(item => item.gram === gram);
+    let updatedCart;
     if (existing) {
       if (existing.qty < stock) {
-        setCart(cart.map(item => item.gram === gram ? { ...item, qty: item.qty + 1 } : item));
+        updatedCart = cart.map(item => item.gram === gram ? { ...item, qty: item.qty + 1 } : item);
       } else {
         alert("Stok kepingan tidak cukup!");
+        return;
       }
     } else {
-      setCart([...cart, { gram, qty: 1, price }]);
+      updatedCart = [...cart, { gram, qty: 1, price }];
     }
-    setShowCart(true);
+    setCart(updatedCart);
+
+    // TRIGGER FLOATING TOAST ANIMATION
+    setToastMessage(`✨ Antam ${gram}gr masuk keranjang!`);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 2500);
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+  const totalCartItemsCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
   const handleCheckoutWA = () => {
     triggerHaptic();
@@ -147,9 +170,9 @@ export default function AdvancedEmasBungPWA() {
 
   const saveToStorage = (partialData: any) => {
     try {
-      const existing = JSON.parse(localStorage.getItem("emasBungV42") || "{}");
-      const dataToSave = { ...existing, basePrice, buybackPrice, inventory, gallery, orders, ...partialData };
-      localStorage.setItem("emasBungV42", JSON.stringify(dataToSave));
+      const existing = JSON.parse(localStorage.getItem("emasBungV43") || "{}");
+      const dataToSave = { ...existing, basePrice, buybackPrice, currentDate, inventory, gallery, orders, ...partialData };
+      localStorage.setItem("emasBungV43", JSON.stringify(dataToSave));
     } catch (error) {
       alert("Penyimpanan lokal penuh!");
       console.error(error);
@@ -163,7 +186,7 @@ export default function AdvancedEmasBungPWA() {
     alert("Sistem & Database Lokal Berhasil Disimpan! 🚀");
   };
 
-  const breakingNewsText = `UPDATE HARGA: 1G Rp ${getProductPrice(1, 0).toLocaleString('id-ID')} • BUYBACK Rp ${buybackPrice.toLocaleString('id-ID')} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING `;
+  const breakingNewsText = `• UPDATE HARGA: 1G Rp ${getProductPrice(1, 0).toLocaleString('id-ID')} • BUYBACK Rp ${buybackPrice.toLocaleString('id-ID')} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
   return (
     <main className="min-h-screen bg-[#f8f8f4] text-[#111111] font-sans selection:bg-[#FFD700] selection:text-[#111] pb-28 relative overflow-x-hidden max-w-md mx-auto shadow-2xl border-x-2 border-[#111]">
@@ -186,6 +209,14 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </div>
 
+      {/* FLOATING TOAST NOTIFICATION (FEEDBACK KETIKA ADD TO CART) */}
+      <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out ${showToast ? "translate-y-0 opacity-100 scale-100" : "translate-y-10 opacity-0 scale-95 pointer-events-none"}`}>
+        <div className="bg-[#111] text-[#FFD700] border-2 border-[#FFD700] px-4 py-2.5 shadow-[4px_4px_0px_0px_#FFD700] flex items-center gap-2.5">
+          <span className="text-sm">🛒</span>
+          <p className="text-xs font-black tracking-wide uppercase">{toastMessage}</p>
+        </div>
+      </div>
+
       {/* HEADER NAVBAR */}
       <section className="bg-[#FFD700] text-[#111] pt-6 pb-5 px-5 border-b-4 border-[#111] relative z-10 shadow-sm">
         <div className="flex justify-between items-center mb-4">
@@ -198,7 +229,11 @@ export default function AdvancedEmasBungPWA() {
             </button>
             <button onClick={() => setShowCart(true)} className="relative bg-[#111] text-white p-2 border-2 border-[#111] shadow-[2px_2px_0px_0px_#fff] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              {cart.length > 0 && <span className="absolute -top-3 -right-3 bg-[#111] text-[#FFD700] text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#111] animate-bounce">{cart.length}</span>}
+              {totalCartItemsCount > 0 && (
+                <span className="absolute -top-3 -right-3 bg-[#111] text-[#FFD700] text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#FFD700] animate-bounce">
+                  {totalCartItemsCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -226,7 +261,7 @@ export default function AdvancedEmasBungPWA() {
             <div className="flex divide-x-2 divide-[#111]/20 border-2 border-[#111]/20 bg-[#ffcc00]">
               <div className="flex-1 p-3 text-center">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-[#111]/80 mb-0.5">Spread Jual-Beli</p>
-                <p className="text-sm font-black tracking-tight text-[#111]">Sangat Kompetitif</p>
+                <p className="text-sm font-black tracking-tight text-[#111]">Kompetitif</p>
               </div>
               <div className="flex-1 p-3 text-center bg-[#111] text-[#FFD700]">
                 <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5">Terima Buyback</p>
@@ -293,8 +328,8 @@ export default function AdvancedEmasBungPWA() {
                 <ul className="text-[11px] font-bold text-zinc-700 space-y-1">
                   <li>✔ 100% Antam Asli (Garansi Uang Kembali)</li>
                   <li>✔ Rekening Resmi BCA a.n. Gilang Segara Bening</li>
-                  <li>✔ COD di Mall, Coffee Shop, Stasiun KRL (Jabodetabek) / Rumah</li>
-                  <li>✔ Harga & Stok Dinamis, Terima Buyback Emas Antam</li>
+                  <li>✔ Fleksibel: COD Stasiun KRL / Jabodetabek / Rumah</li>
+                  <li>✔ Harga & Stok Dinamis, Terima Buyback Emas Lama</li>
                 </ul>
               </div>
             </section>
@@ -305,7 +340,7 @@ export default function AdvancedEmasBungPWA() {
         {/* PRODUK */}
         {activeTab === "produk" && (
           <section className="p-5 animate-in fade-in slide-in-from-right-2 duration-300">
-            <h2 className="text-2xl font-black tracking-tight mb-4 uppercase">Katalog Emas Antam</h2>
+            <h2 className="text-2xl font-black tracking-tight mb-4 uppercase">Katalog BUNG</h2>
             <div className="w-full">
               <div className="grid grid-cols-2 gap-3 w-full">
                 {inventory.map((item) => {
@@ -448,7 +483,7 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* INFO (PINDAH SECTION CARA ORDER KESINI, HAPUS TIPS REDUNDAN) */}
+        {/* INFO */}
         {activeTab === "info" && (
           <section className="p-5 animate-in fade-in duration-300 space-y-6">
             <h2 className="text-3xl font-black tracking-tight uppercase">Info</h2>
@@ -468,7 +503,7 @@ export default function AdvancedEmasBungPWA() {
               </div>
             </div>
 
-            {/* CARA ORDER & TRANSAKSI (PINDAHAN DARI HOMEPAGE) */}
+            {/* CARA ORDER & TRANSAKSI */}
             <div className="bg-white border-4 border-[#111] p-5 shadow-[6px_6px_0px_0px_#111]">
               <div className="flex items-center gap-2 border-b-2 border-[#111] pb-3 mb-4">
                 <div className="bg-[#FFD700] border-2 border-[#111] p-1.5 flex items-center justify-center font-black text-xs">🚀</div>
@@ -638,6 +673,10 @@ export default function AdvancedEmasBungPWA() {
                 <div>
                   <label className="text-[10px] font-black uppercase">Buyback Base (1g):</label>
                   <input type="number" value={buybackPrice} onChange={(e) => setBuybackPrice(Number(e.target.value))} className="w-full border-2 border-[#111] font-black text-xl py-2 px-3 outline-none focus:border-[#FFD700]" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase">Tanggal Tampilan (Custom):</label>
+                  <input type="text" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="w-full border-2 border-[#111] font-black text-lg py-2 px-3 outline-none focus:border-[#FFD700]" placeholder="Contoh: 14 OKT 2026" />
                 </div>
               </div>
             )}
