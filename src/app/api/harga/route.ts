@@ -19,8 +19,17 @@ async function getAntam1g(): Promise<Result> {
 
   try {
     const url = "https://emas.maulanar.my.id/api/prices?resource[eq]=antam&weight[eq]=1&sort_by=updated_at&order=desc&limit=30";
-    const res = await fetch(url, { headers: { "X-API-Key": process.env.EMAS_API_KEY ?? "" } });
-    if (!res.ok) return fail(`Upstream ${res.status}`);
+    const res = await fetch(url, {
+      headers: {
+        "X-API-Key": process.env.EMAS_API_KEY ?? "",
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; EmasBungBot/1.0; +https://vercel.com)",
+      },
+    });
+    if (!res.ok) {
+      const body = (await res.text().catch(() => "")).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+      return fail(`Upstream ${res.status}${res.headers.get("cf-mitigated") ? " (cf-mitigated)" : ""}: ${body}`);
+    }
     const json = (await res.json()) as { data: ApiRow[] };
     if (!Array.isArray(json.data) || json.data.length === 0) return fail("Data Antam kosong");
 
