@@ -27,7 +27,9 @@ export async function GET() {
   }
   try {
     return Response.json(await getAntam1g());
-  } catch {
-    return Response.json({ error: "Gagal ambil harga" }, { status: 502 });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "unknown";
+    console.error("[api/harga]", detail);
+    return Response.json({ error: "Gagal ambil harga", detail }, { status: 502 });
   }
 }
