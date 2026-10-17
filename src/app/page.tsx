@@ -23,6 +23,8 @@ import {
   Settings2,
   CheckCircle2,
   Save,
+  GraduationCap,
+  CirclePlay,
 } from "lucide-react";
 
 type InventoryItem = { gram: number; stock: number; discount: number };
@@ -32,12 +34,14 @@ type PricePoint = { d: string; p: number };
 
 const rp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 const DEFAULT_BASE = 2592000;
+const YOUTUBE_URL = "https://www.youtube.com/@emasbung";
 
 const TABS = [
   { id: "beranda", label: "Beranda", Icon: Home },
   { id: "jual", label: "Jual", Icon: HandCoins },
   { id: "galeri", label: "Galeri", Icon: ImageIcon },
   { id: "info", label: "Info", Icon: Info },
+  { id: "edukasi", label: "Edukasi", Icon: GraduationCap },
 ];
 
 export default function AdvancedEmasBungPWA() {
@@ -76,6 +80,7 @@ export default function AdvancedEmasBungPWA() {
   const [activeTab, setActiveTab] = useState("beranda");
   const [showCart, setShowCart] = useState(false);
   const [showPushNotif, setShowPushNotif] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [removingItem, setRemovingItem] = useState<number | null>(null);
 
   const [toastMessage, setToastMessage] = useState("");
@@ -651,10 +656,10 @@ export default function AdvancedEmasBungPWA() {
               {[
                 { v: "50+", l: "Transaksi COD" },
                 { v: "999,9", l: "Kemurnian" },
-                { v: "Jabo", l: "Area COD" },
+                { v: "Jabodetabek", l: "Area COD" },
               ].map((s) => (
                 <div key={s.l} className="surface p-3.5">
-                  <p className="text-xl font-extrabold text-ico">{s.v}</p>
+                  <p className={`font-extrabold text-ico ${s.v.length > 7 ? "text-[15px] leading-[1.6]" : "text-xl"}`}>{s.v}</p>
                   <p className="mt-1 text-[10px] font-bold text-soft">{s.l}</p>
                 </div>
               ))}
@@ -854,7 +859,9 @@ export default function AdvancedEmasBungPWA() {
               key={id}
               onClick={() => {
                 triggerHaptic();
-                setActiveTab(id);
+                // Edukasi membuka YouTube (keluar dari web ini), jadi minta konfirmasi dulu
+                if (id === "edukasi") setShowLeaveConfirm(true);
+                else setActiveTab(id);
               }}
               className={`flex w-16 flex-col items-center gap-0.5 py-1 ${active ? "text-ico" : "text-soft"}`}
             >
@@ -867,6 +874,42 @@ export default function AdvancedEmasBungPWA() {
         })}
       </nav>
       </div>
+
+      {/* KONFIRMASI KELUAR KE YOUTUBE */}
+      {showLeaveConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leave-title"
+          onClick={() => setShowLeaveConfirm(false)}
+          onKeyDown={(e) => e.key === "Escape" && setShowLeaveConfirm(false)}
+          className="phone animate-fade fixed left-1/2 top-0 z-[70] flex h-full -translate-x-1/2 items-center justify-center bg-black/80 p-5 backdrop-blur-md"
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full rounded-3xl bg-pbg p-6 text-center">
+            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-lime text-limeink">
+              <CirclePlay size={22} strokeWidth={2.5} />
+            </div>
+            <h3 id="leave-title" className="text-xl font-extrabold">Keluar dari Emas BUNG?</h3>
+            <p className="mb-5 mt-2 text-sm font-semibold leading-snug text-soft">
+              Kamu akan diarahkan ke channel YouTube Emas BUNG untuk belajar seputar emas. Keranjang kamu tetap aman di sini.
+            </p>
+            <div className="flex gap-3">
+              <button autoFocus onClick={() => setShowLeaveConfirm(false)} className="btn btn-soft flex-1 py-3 text-sm">
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  window.open(YOUTUBE_URL, "_blank", "noopener,noreferrer");
+                  setShowLeaveConfirm(false);
+                }}
+                className="btn btn-lime flex-1 py-3 text-sm"
+              >
+                Buka YouTube
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PIN ADMIN */}
       {showAdminPin && (
