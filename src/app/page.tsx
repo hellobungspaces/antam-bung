@@ -34,10 +34,9 @@ type PricePoint = { d: string; p: number };
 
 const rp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
-// Range harga jual: dari (harga Antam + low) sampai (harga Antam + high), dalam persen.
-// Jangan melebihi harga Antam: high = 0. low negatif = sampai berapa persen di bawah Antam,
-// mis. -0.005 = sampai 0,5% di bawah. Isi 0 dan 0 untuk harga pasti.
-const SPREAD = { low: -0.005, high: 0 };
+// Range harga jual: dari (harga Antam dikurangi spread%) sampai harga Antam. Batas atas tidak pernah
+// melebihi harga Antam. Spread diatur di admin (tersimpan di server); ini nilai awalnya.
+const DEFAULT_SPREAD_PCT = 0.5;
 
 // Foto batangan per gramasi: /public/images/antam/{gram}-thumb.jpg (daftar) dan {gram}.jpg (diperbesar).
 // Kalau fotonya belum ada, tampil kotak angka seperti sebelumnya.
@@ -71,9 +70,9 @@ const compact = (n: number) =>
     : { v: Math.round(n / 1000).toLocaleString("id-ID"), u: "rb" };
 
 // Harga ditampilkan ringkas: "Rp 2,57–2,60 jt" (bukan Rp 2.572.000), dibulatkan ke ribuan
-const priceRange = (n: number, sep = "–") => {
-  const lo = Math.round((n * (1 + SPREAD.low)) / 1000) * 1000;
-  const hi = Math.round((n * (1 + SPREAD.high)) / 1000) * 1000;
+const priceRange = (n: number, sep = "–", spreadPct = DEFAULT_SPREAD_PCT) => {
+  const lo = Math.round((n * (1 - spreadPct / 100)) / 1000) * 1000;
+  const hi = Math.round(n / 1000) * 1000;
   const a = compact(lo);
   const b = compact(hi);
   if (a.v === b.v && a.u === b.u) return `Rp ${a.v} ${a.u}`;
@@ -98,6 +97,9 @@ export default function AdvancedEmasBungPWA() {
   const [buybackPrice, setBuybackPrice] = useState(2401000);
   const [currentDate, setCurrentDate] = useState("");
   const [manualPrice, setManualPrice] = useState(false);
+  const [spreadPct, setSpreadPct] = useState(DEFAULT_SPREAD_PCT);
+  // true kalau penyimpanan server + ADMIN_PIN aktif: stok, diskon, spread, dan harga manual berlaku untuk semua pengunjung
+  const [serverMode, setServerMode] = useState(false);
   const [unitPrices, setUnitPrices] = useState<Record<string, number>>({});
   const [isScrolling, setIsScrolling] = useState(false);
   const [history, setHistory] = useState<PricePoint[]>([{ d: "", p: DEFAULT_BASE }]);
@@ -155,6 +157,7 @@ export default function AdvancedEmasBungPWA() {
 
   const SECRET_PIN = "0000";
   const WA_NUMBER = "628176767166";
+  const pr = (n: number, sep?: string) => priceRange(n, sep, spreadPct);
 
   // Esc menutup foto yang diperbesar / konfirmasi keluar
   useEffect(() => {
@@ -212,15 +215,32 @@ export default function AdvancedEmasBungPWA() {
       setCurrentDate(defaultFormattedDate);
     }
 
-    // Harga otomatis dari API; kalau gagal, harga tersimpan/manual tetap dipakai
-    fetch("/api/harga")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (manual) return;
-        if (d?.sell > 0) setBasePrice(d.sell);
-        if (d?.buyback > 0) setBuybackPrice(d.buyback);
-        if (d?.prices && typeof d.prices === "object") setUnitPrices(d.prices);
-        if (Array.isArray(d?.history) && d.history.length >= 2) {
+    // Pengaturan toko (server) + harga otomatis (API). Kalau salah satu gagal, data bawaan/lokal tetap dipakai.
+    const settingsReq = fetch("/api/settings").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const priceReq = fetch("/api/harga").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    Promise.all([settingsReq, priceReq]).then(([cfg, d]) => {
+      const server = cfg?.configured === true;
+      setServerMode(server);
+      const st = server ? cfg.settings : null;
+      if (st) {
+        if (Array.isArray(st.inventory)) setInventory(st.inventory);
+        if (typeof st.spread === "number") setSpreadPct(st.spread);
+      }
+      const manualOn = server ? st?.manual?.enabled === true : manual;
+      setManualPrice(manualOn);
+      if (manualOn) {
+        if (st?.manual) {
+          setBasePrice(st.manual.base);
+          setBuybackPrice(st.manual.buyback);
+        }
+      } else if (d) {
+        if (d.sell > 0) setBasePrice(d.sell);
+        // Tanggal mengikuti kapan harga diperbarui di sumber data, bukan tanggal HP pengunjung
+        const ymd = typeof d.updatedAt === "string" ? d.updatedAt.match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+        if (ymd) setCurrentDate(`${Number(ymd[3])} ${months[Number(ymd[2]) - 1]} ${ymd[1]}`);
+        if (d.buyback > 0) setBuybackPrice(d.buyback);
+        if (d.prices && typeof d.prices === "object") setUnitPrices(d.prices);
+        if (Array.isArray(d.history) && d.history.length >= 2) {
           setHistory(
             d.history.map((h: { date: string; price: number }) => {
               const dt = new Date(h.date);
@@ -228,10 +248,12 @@ export default function AdvancedEmasBungPWA() {
             }),
           );
         }
-      })
-      .catch(() => {});
+      }
+      setIsLoading(false);
+    });
 
-    const loadTimer = setTimeout(() => setIsLoading(false), 800);
+    // Batas tunggu: kalau server lambat, tampilkan halaman dengan data yang ada
+    const loadTimer = setTimeout(() => setIsLoading(false), 3000);
 
     const notifTimer = setTimeout(() => {
       setShowPushNotif(true);
@@ -327,14 +349,14 @@ export default function AdvancedEmasBungPWA() {
     triggerHaptic();
     if (cart.length === 0) return;
     const itemsText = cart
-      .map((item) => `- ${item.qty}x Antam ${item.gram}gr (${priceRange(item.price, " - ")})`)
+      .map((item) => `- ${item.qty}x Antam ${item.gram}gr (${pr(item.price, " - ")})`)
       .join("%0a");
-    const message = `Halo Emas BUNG! Saya mau order:%0a${itemsText}%0a%0a*Estimasi total: ${priceRange(cartTotal, " - ")}*%0a(harga final dikonfirmasi saat COD)%0a%0aCOD, cek emas dulu, lalu bayar via BCA a.n. Gilang Segara Bening.%0a%0aSiap janjian?`;
+    const message = `Halo Emas BUNG! Saya mau order:%0a${itemsText}%0a%0a*Estimasi total: ${pr(cartTotal, " - ")}*%0a(harga final dikonfirmasi saat COD)%0a%0aCOD, cek emas dulu, lalu bayar via BCA a.n. Gilang Segara Bening.%0a%0aSiap janjian?`;
 
     const newOrder = {
       id: `ORD-${Date.now().toString().slice(-4)}`,
       name: "WA Customer",
-      detail: `${cart.length} item - ${priceRange(cartTotal, " - ")}`,
+      detail: `${cart.length} item - ${pr(cartTotal, " - ")}`,
       status: "Pending",
     };
     setOrders([newOrder, ...orders]);
@@ -362,14 +384,34 @@ export default function AdvancedEmasBungPWA() {
     setTimeout(() => setTapCount(0), 2000);
   };
 
-  const handlePinSubmit = () => {
-    if (pinInput === SECRET_PIN) {
+  const handlePinSubmit = async () => {
+    const pin = pinInput;
+    setPinInput("");
+    let ok = false;
+    if (serverMode) {
+      try {
+        const res = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin }),
+        });
+        if (res.status === 429) {
+          notify("Terlalu banyak percobaan, coba lagi nanti");
+          return;
+        }
+        ok = res.ok;
+      } catch {
+        notify("Tidak bisa terhubung, coba lagi");
+        return;
+      }
+    } else {
+      ok = pin === SECRET_PIN; // mode lokal: server belum diaktifkan
+    }
+    if (ok) {
       setShowAdminPin(false);
       setShowAdminPanel(true);
-      setPinInput("");
     } else {
       notify("PIN salah, coba lagi");
-      setPinInput("");
     }
   };
 
@@ -385,19 +427,41 @@ export default function AdvancedEmasBungPWA() {
   };
 
   // Simpan perubahan; kalau harga berubah, titiknya masuk riwayat untuk grafik
-  const handleAdminSave = () => {
+  const handleAdminSave = async () => {
     let nextHistory = history;
     if (history[history.length - 1]?.p !== basePrice) {
       nextHistory = [...history, { d: currentDate, p: basePrice }].slice(-30);
       setHistory(nextHistory);
     }
     saveToStorage({ history: nextHistory });
+    if (serverMode) {
+      try {
+        const res = await fetch("/api/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inventory, spread: spreadPct, manual: { enabled: manualPrice, base: basePrice, buyback: buybackPrice } }),
+        });
+        if (res.status === 401) {
+          notify("Sesi admin habis, masuk lagi");
+          setShowAdminPanel(false);
+          setShowAdminPin(true);
+          return;
+        }
+        if (!res.ok) {
+          notify("Gagal menyimpan ke server");
+          return;
+        }
+      } catch {
+        notify("Gagal menyimpan ke server");
+        return;
+      }
+    }
     setShowAdminPanel(false);
     triggerHaptic();
     notify("Perubahan berhasil disimpan");
   };
 
-  const breakingNewsText = `• UPDATE HARGA: 1G ${priceRange(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
+  const breakingNewsText = `• UPDATE HARGA: 1G ${pr(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
   // Perubahan harga dibanding titik sebelumnya (hanya kalau sudah ada riwayat)
   const prevPoint = history.length >= 2 ? history[history.length - 2].p : null;
@@ -458,12 +522,12 @@ export default function AdvancedEmasBungPWA() {
         style={{ animationDelay: `${idx * 40}ms` }}
         className={`animate-fade-up flex min-w-0 flex-col overflow-hidden rounded-[18px] ${
           q > 0 ? "bg-sel outline outline-[1.5px] outline-selbd" : "surface"
-        } ${ready ? "" : "opacity-55"}`}
+        }`}
       >
         <button
           onClick={() => setZoomGram(item.gram)}
           aria-label={`Perbesar foto Antam ${item.gram} gram`}
-          className="block aspect-square w-full bg-surf active:opacity-80"
+          className={`block aspect-square w-full bg-surf active:opacity-80 ${ready ? "" : "opacity-55"}`}
         >
           {broken ? (
             <span className="grid h-full w-full place-items-center">
@@ -482,9 +546,9 @@ export default function AdvancedEmasBungPWA() {
           )}
         </button>
         <div className="flex flex-1 flex-col gap-0.5 px-2.5 pb-2.5 pt-2">
-          <p className="text-[13px] font-extrabold">Antam {item.gram} gr</p>
-          {ready && <p className="text-[11.5px] font-bold text-ico">{priceRange(getProductPrice(item.gram, item.discount))}</p>}
-          <p className="text-[10.5px] text-soft">{ready ? `sisa ${item.stock}` : "Stok kosong"}</p>
+          <p className={`text-[13px] font-extrabold ${ready ? "" : "opacity-55"}`}>Antam {item.gram} gr</p>
+          {ready && <p className="text-[11.5px] font-bold text-ico">{pr(getProductPrice(item.gram, item.discount))}</p>}
+          <p className={`text-[10.5px] text-soft ${ready ? "" : "opacity-70"}`}>{ready ? `sisa ${item.stock}` : "Stok kosong"}</p>
           <div className="mt-2 flex justify-center">
             {ready ? (
               <div className="flex w-full items-center justify-between text-[13px] font-extrabold">
@@ -506,7 +570,14 @@ export default function AdvancedEmasBungPWA() {
                 </button>
               </div>
             ) : (
-              <span className="rounded-full bg-surf px-2.5 py-1 text-[10px] font-extrabold text-soft">Habis</span>
+              <a
+                href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo Bung, Antam ${item.gram} gr ada atau bisa dipesan?`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-1.5 rounded-full bg-lime px-3 py-2 text-[11.5px] font-extrabold text-limeink active:scale-95"
+              >
+                <MessageCircle size={13} strokeWidth={2.75} aria-hidden="true" /> Tanya stok
+              </a>
             )}
           </div>
         </div>
@@ -665,7 +736,7 @@ export default function AdvancedEmasBungPWA() {
                       {insight.rows.map((r) => (
                         <li key={r.label} className="flex justify-between gap-3">
                           <span>{r.label}</span>
-                          <b className={`font-extrabold ${r.pct > 0 ? "text-ico" : r.pct < 0 ? "text-danger" : "text-ink"}`}>{fmtPct(r.pct)}</b>
+                          <b className={`font-extrabold ${r.pct > 0 ? "text-up" : r.pct < 0 ? "text-danger" : "text-ink"}`}>{fmtPct(r.pct)}</b>
                         </li>
                       ))}
                       <li className="flex justify-between gap-3"><span>Terendah</span><b className="font-extrabold text-ink">{insight.low}</b></li>
@@ -979,7 +1050,7 @@ export default function AdvancedEmasBungPWA() {
                     <GramPhoto gram={c.gram} broken={brokenPhotos.includes(c.gram)} onBroken={() => markBroken(c.gram)} />
                     <div className="min-w-0 flex-1">
                       <h4 className="text-sm font-extrabold">Antam {c.gram} gr</h4>
-                      <p className="text-[11px] font-bold text-ico">{priceRange(c.price)} / keping</p>
+                      <p className="text-[11px] font-bold text-ico">{pr(c.price)} / keping</p>
                     </div>
                     <div className="flex items-center gap-1.5 text-[13px] font-extrabold">
                       <button onClick={() => changeQty(c.gram, -1)} aria-label="Kurangi" className="grid h-7 w-7 place-items-center rounded-full bg-stp text-ico active:scale-90">
@@ -1009,7 +1080,7 @@ export default function AdvancedEmasBungPWA() {
               </div>
               <div className="mb-4 mt-3 flex items-end justify-between">
                 <span className="text-sm font-extrabold">Total</span>
-                <span className="text-2xl font-extrabold tracking-tight text-ico">{priceRange(cartTotal)}</span>
+                <span className="text-2xl font-extrabold tracking-tight text-ico">{pr(cartTotal)}</span>
               </div>
               <button onClick={handleCheckoutWA} disabled={cart.length === 0} className="btn btn-wa w-full py-4 text-sm">
                 <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
@@ -1025,7 +1096,7 @@ export default function AdvancedEmasBungPWA() {
           <div className="pointer-events-auto px-3 pb-2">
             <button
               onClick={() => setShowCart(true)}
-              aria-label={`Buka Keranjang, ${totalCartItemsCount} item, total ${priceRange(cartTotal)}`}
+              aria-label={`Buka Keranjang, ${totalCartItemsCount} item, total ${pr(cartTotal)}`}
               className="animate-fade-up flex w-full items-center gap-3 rounded-2xl bg-row p-2 pl-2.5 text-left shadow-[0_10px_30px_-8px_rgb(0_0_0/40%)] ring-1 ring-selbd/50 active:scale-[0.99]"
             >
               <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surf text-ico">
@@ -1041,7 +1112,7 @@ export default function AdvancedEmasBungPWA() {
                 <span className="block text-[11px] font-bold text-soft">
                   Keranjang · {cart.reduce((a, c) => a + c.gram * c.qty, 0).toLocaleString("id-ID")} gram emas
                 </span>
-                <span className="block truncate text-base font-extrabold tracking-tight">{priceRange(cartTotal)}</span>
+                <span className="block truncate text-base font-extrabold tracking-tight">{pr(cartTotal)}</span>
               </span>
               <span className="btn btn-lime shrink-0 rounded-xl px-4 py-3 text-[13px]">
                 Checkout <ArrowRight size={15} strokeWidth={3} />
@@ -1159,10 +1230,10 @@ export default function AdvancedEmasBungPWA() {
               id="admin-pin"
               type="password"
               inputMode="numeric"
-              maxLength={4}
+              maxLength={8}
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
-              className="input mb-4 py-3 text-center text-2xl tracking-[0.8em]"
+              className="input mb-4 py-3 text-center text-2xl tracking-[0.5em]"
               aria-label="PIN admin"
             />
             <div className="flex gap-3">
@@ -1207,6 +1278,12 @@ export default function AdvancedEmasBungPWA() {
               ))}
             </div>
 
+            <p className={`mb-3 rounded-xl px-3 py-2 text-[11px] font-bold ${serverMode ? "bg-sel text-ink" : "bg-surf text-soft2"}`}>
+              {serverMode
+                ? "Tersimpan di server: stok, diskon, spread, dan harga manual berlaku untuk semua pengunjung."
+                : "Mode lokal: perubahan hanya terlihat di browser ini. Aktifkan penyimpanan server agar berlaku untuk semua pengunjung."}
+            </p>
+
             {adminTab === "price" && (
               <div className="space-y-4">
                 <div className="surface space-y-4 p-5">
@@ -1227,6 +1304,22 @@ export default function AdvancedEmasBungPWA() {
                     <label htmlFor="adm-bb" className="text-xs font-extrabold text-ico">Harga buyback 1 gram</label>
                     <input id="adm-bb" type="number" disabled={!manualPrice} value={buybackPrice} onChange={(e) => setBuybackPrice(Number(e.target.value))} className="input mt-1 text-lg" />
                   </div>
+                </div>
+                <div className="surface p-5">
+                  <label htmlFor="adm-spread" className="text-xs font-extrabold text-ico">Range harga jual (% di bawah harga Antam)</label>
+                  <input
+                    id="adm-spread"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={spreadPct}
+                    onChange={(e) => setSpreadPct(Math.min(5, Math.max(0, Number(e.target.value))))}
+                    className="input mt-1 text-lg"
+                  />
+                  <p className="mt-2 text-xs font-semibold leading-snug text-soft">
+                    Batas atas selalu harga Antam. Contoh 0,5 menampilkan 1 gram sebagai {priceRange(basePrice, "–", spreadPct)}. Isi 0 untuk harga pasti.
+                  </p>
                 </div>
                 <div className="surface p-5">
                   <h3 className="mb-2 text-sm font-extrabold">Tanggal update manual</h3>

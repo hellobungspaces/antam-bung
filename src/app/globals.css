@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
-/* Konsep "Dompet": hijau tua + lime. Semua warna lewat token supaya terang/gelap otomatis. */
+/* Semua warna lewat token supaya terang/gelap otomatis. */
+/* Light: "Gading dan emas" (latar gading, aksen emas). Dark: hijau tua + lime. */
 :root {
-  --pbg: #f3f8f5;
-  --outer: #e4ece7;
-  --ink: #0d2018;
-  --soft: #5f7a6d;
-  --soft2: #2f4a3c;
-  --surf: #e3efe8;
-  --row: #ffffff;
-  --sel: #f1fbd6;
-  --selbd: #8fc400;
-  --lime: #c6f432;
-  --limeink: #0a1a00;
-  --ico: #0c7a43;
-  --line: #0c9a56;
-  --stp: #e3efe8;
-  --zero: #9bb3a6;
-  --danger: #d6293a;
+  --pbg: #faf7ef;
+  --outer: #efe8d3;
+  --ink: #1b2a20;
+  --soft: #6a6350;
+  --soft2: #40392a;
+  --surf: #f1ebdb;
+  --row: #fffdf8;
+  --sel: #fbf0cf;
+  --selbd: #c9961a;
+  --lime: #e8b92c;
+  --limeink: #2a1d00;
+  --ico: #7a5600;
+  --line: #b8860b;
+  --stp: #f1ebdb;
+  --zero: #b3a98f;
+  --danger: #b3261e;
+  --up: #1f6b3a;
   --wa: #1fb855;
-  --rowsh: 0 4px 12px -8px rgb(13 60 40 / 35%);
-  --limesh: 0 12px 22px -10px rgb(120 170 0 / 80%);
+  --cardbd: #ece3cc;
+  --limebd: rgb(42 29 0 / 25%);
+  --rowsh: 0 1px 2px rgb(60 45 0 / 8%), 0 8px 18px -10px rgb(60 45 0 / 25%);
+  --limesh: 0 12px 22px -10px rgb(184 134 11 / 55%);
   --gold-a: #ffe58f;
   --gold-b: #c8921f;
   color-scheme: light;
@@ -37,11 +41,16 @@
     --row: #0d1d17;
     --sel: #14301f;
     --selbd: #c6f432;
+    --lime: #c6f432;
+    --limeink: #0a1a00;
     --ico: #c6f432;
     --line: #c6f432;
     --stp: #1a3327;
     --zero: #5d7d6e;
     --danger: #ff6b78;
+    --up: #c6f432;
+    --cardbd: transparent;
+    --limebd: transparent;
     --rowsh: none;
     --limesh: none;
     color-scheme: dark;
@@ -65,6 +74,7 @@
   --color-stp: var(--stp);
   --color-zero: var(--zero);
   --color-danger: var(--danger);
+  --color-up: var(--up);
   --color-wa: var(--wa);
 }
 
@@ -120,6 +130,11 @@ input:focus-visible {
   background: var(--lime);
   color: var(--limeink);
   box-shadow: var(--limesh);
+  border: 1px solid var(--limebd);
+}
+/* Tepi tipis pada semua elemen lime, supaya terlihat di latar terang (transparan di dark mode) */
+.bg-lime {
+  border: 1px solid var(--limebd);
 }
 .btn-wa {
   background: var(--wa);
@@ -134,6 +149,7 @@ input:focus-visible {
   background: var(--row);
   border-radius: 1.25rem;
   box-shadow: var(--rowsh);
+  border: 1px solid var(--cardbd);
 }
 
 .input {
