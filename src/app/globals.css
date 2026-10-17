@@ -1,26 +1,217 @@
 @import "tailwindcss";
 
+/* Konsep "Dompet": hijau tua + lime. Semua warna lewat token supaya terang/gelap otomatis. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --pbg: #f3f8f5;
+  --outer: #e4ece7;
+  --ink: #0d2018;
+  --soft: #5f7a6d;
+  --soft2: #2f4a3c;
+  --surf: #e3efe8;
+  --row: #ffffff;
+  --sel: #f1fbd6;
+  --selbd: #8fc400;
+  --lime: #c6f432;
+  --limeink: #0a1a00;
+  --ico: #0c7a43;
+  --line: #0c9a56;
+  --stp: #e3efe8;
+  --zero: #9bb3a6;
+  --danger: #d6293a;
+  --wa: #1fb855;
+  --rowsh: 0 4px 12px -8px rgb(13 60 40 / 35%);
+  --limesh: 0 12px 22px -10px rgb(120 170 0 / 80%);
+  --gold-a: #ffe58f;
+  --gold-b: #c8921f;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --pbg: #07130f;
+    --outer: #030907;
+    --ink: #e9f5ee;
+    --soft: #7fa493;
+    --soft2: #bcd4c8;
+    --surf: #12251d;
+    --row: #0d1d17;
+    --sel: #14301f;
+    --selbd: #c6f432;
+    --ico: #c6f432;
+    --line: #c6f432;
+    --stp: #1a3327;
+    --zero: #5d7d6e;
+    --danger: #ff6b78;
+    --rowsh: none;
+    --limesh: none;
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --color-pbg: var(--pbg);
+  --color-outer: var(--outer);
+  --color-ink: var(--ink);
+  --color-soft: var(--soft);
+  --color-soft2: var(--soft2);
+  --color-surf: var(--surf);
+  --color-row: var(--row);
+  --color-sel: var(--sel);
+  --color-selbd: var(--selbd);
+  --color-lime: var(--lime);
+  --color-limeink: var(--limeink);
+  --color-ico: var(--ico);
+  --color-stp: var(--stp);
+  --color-zero: var(--zero);
+  --color-danger: var(--danger);
+  --color-wa: var(--wa);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--outer);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--selbd);
+  outline-offset: 2px;
+}
+
+/* Satu-satunya bingkai: lebar HP, di tengah layar saat dibuka di desktop */
+.phone {
+  width: 100%;
+  max-width: 430px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 800;
+  border-radius: 1rem;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.btn-lime {
+  background: var(--lime);
+  color: var(--limeink);
+  box-shadow: var(--limesh);
+}
+.btn-wa {
+  background: var(--wa);
+  color: #fff;
+}
+.btn-soft {
+  background: var(--surf);
+  color: var(--ink);
+}
+
+.surface {
+  background: var(--row);
+  border-radius: 1.25rem;
+  box-shadow: var(--rowsh);
+}
+
+.input {
+  width: 100%;
+  background: var(--surf);
+  border: 2px solid transparent;
+  border-radius: 1rem;
+  padding: 0.7rem 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+  transition: border-color 0.15s;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--selbd);
+}
+
+/* batangan mini sebagai pengganti foto produk */
+.bar-chip {
+  width: 44px;
+  height: 32px;
+  flex: none;
+  clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, var(--gold-a), var(--gold-b));
+  color: #3a2800;
+  font-size: 9.5px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  padding-top: 3px;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes shine {
+  to { background-position: 200% 0; }
+}
+
+.animate-marquee { display: inline-block; animation: marquee 28s linear infinite; }
+.animate-fade-up { animation: fade-up 0.35s ease-out both; }
+.animate-pop { animation: pop 0.35s ease-out both; }
+.animate-sheet { animation: sheet-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.animate-fade { animation: fade 0.25s ease-out both; }
+.skeleton {
+  background: linear-gradient(90deg, var(--surf) 25%, var(--row) 50%, var(--surf) 75%);
+  background-size: 200% 100%;
+  animation: shine 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
