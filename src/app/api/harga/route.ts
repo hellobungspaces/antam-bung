@@ -5,7 +5,7 @@ const BASE = "https://logam-mulia-api.iamutaki.workers.dev/api/prices";
 
 type Row = { material: string; materialType: string; weight: number; sellPrice: number; buybackPrice: number | null; recordedDate: string };
 type Result =
-  | { ok: true; sell: number; buyback: number | null; updatedAt: string; history: { date: string; price: number }[] }
+  | { ok: true; sell: number; buyback: number | null; updatedAt: string; history: { date: string; price: number }[]; prices: Record<string, number> }
   | { ok: false; detail: string };
 
 async function getJson(path: string): Promise<Row[]> {
@@ -27,10 +27,17 @@ async function getAntam1g(): Promise<Result> {
   };
 
   try {
-    const [hist, bbRows] = await Promise.all([
+    const [hist, bbRows, nowRows] = await Promise.all([
       getJson("logammulia/history?weight=1&material=gold&length=60"),
       getJson("indogold").catch(() => [] as Row[]),
+      getJson("logammulia").catch(() => [] as Row[]),
     ]);
+
+    // Harga resmi per gramasi (harga per gram tiap gramasi tidak sama, jadi jangan dikali 1 gram)
+    const prices: Record<string, number> = {};
+    for (const r of nowRows) {
+      if (r.material === "gold" && r.materialType === "Emas Batangan" && r.sellPrice > 0) prices[String(r.weight)] = r.sellPrice;
+    }
 
     // Satu titik per tanggal (data terbaru di depan), hanya "Emas Batangan" biasa
     const byDate = new Map<string, number>();
@@ -44,7 +51,7 @@ async function getAntam1g(): Promise<Result> {
     const buyback = bbRows.find((r) => r.materialType === "Antam" && r.weight === 1 && r.buybackPrice)?.buybackPrice ?? null;
 
     cacheLife({ stale: 600, revalidate: 3600, expire: 86400 });
-    return { ok: true, sell, buyback, updatedAt, history: days.map(([date, price]) => ({ date, price })) };
+    return { ok: true, sell, buyback, updatedAt, history: days.map(([date, price]) => ({ date, price })), prices };
   } catch (err) {
     return fail(err instanceof Error ? `${err.name}: ${err.message}` : "unknown");
   }

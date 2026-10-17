@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import {
   Home,
   Image as ImageIcon,
@@ -33,6 +33,52 @@ type Order = { id: string; name: string; detail: string; status: string };
 type PricePoint = { d: string; p: number };
 
 const rp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+
+// Range harga jual: dari (harga Antam + low) sampai (harga Antam + high), dalam persen.
+// Jangan melebihi harga Antam: high = 0. low negatif = sampai berapa persen di bawah Antam,
+// mis. -0.005 = sampai 0,5% di bawah. Isi 0 dan 0 untuk harga pasti.
+const SPREAD = { low: -0.005, high: 0 };
+
+// Foto batangan per gramasi: /public/images/antam/{gram}-thumb.jpg (daftar) dan {gram}.jpg (diperbesar).
+// Kalau fotonya belum ada, tampil kotak angka seperti sebelumnya.
+function GramPhoto({ gram, broken, onBroken, onZoom }: { gram: number; broken: boolean; onBroken: () => void; onZoom?: () => void }) {
+  if (broken) return <div className="bar-chip">{gram}</div>;
+  const img = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/images/antam/${gram}-thumb.jpg`}
+      alt={`Antam ${gram} gram`}
+      width={36}
+      height={56}
+      loading="lazy"
+      decoding="async"
+      onError={onBroken}
+      className="block h-14 w-9 rounded-md bg-surf object-cover"
+    />
+  );
+  return onZoom ? (
+    <button onClick={onZoom} aria-label={`Perbesar foto Antam ${gram} gram`} className="shrink-0 rounded-md active:scale-95">
+      {img}
+    </button>
+  ) : (
+    <span className="shrink-0">{img}</span>
+  );
+}
+
+const compact = (n: number) =>
+  n >= 1_000_000
+    ? { v: (n / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), u: "jt" }
+    : { v: Math.round(n / 1000).toLocaleString("id-ID"), u: "rb" };
+
+// Harga ditampilkan ringkas: "Rp 2,57–2,60 jt" (bukan Rp 2.572.000), dibulatkan ke ribuan
+const priceRange = (n: number, sep = "–") => {
+  const lo = Math.round((n * (1 + SPREAD.low)) / 1000) * 1000;
+  const hi = Math.round((n * (1 + SPREAD.high)) / 1000) * 1000;
+  const a = compact(lo);
+  const b = compact(hi);
+  if (a.v === b.v && a.u === b.u) return `Rp ${a.v} ${a.u}`;
+  return a.u === b.u ? `Rp ${a.v}${sep}${b.v} ${a.u}` : `Rp ${a.v} ${a.u}${sep}${b.v} ${b.u}`;
+};
 const DEFAULT_BASE = 2592000;
 const YOUTUBE_URL = "https://www.youtube.com/@emasbung";
 
@@ -52,6 +98,8 @@ export default function AdvancedEmasBungPWA() {
   const [buybackPrice, setBuybackPrice] = useState(2401000);
   const [currentDate, setCurrentDate] = useState("");
   const [manualPrice, setManualPrice] = useState(false);
+  const [unitPrices, setUnitPrices] = useState<Record<string, number>>({});
+  const [isScrolling, setIsScrolling] = useState(false);
   const [history, setHistory] = useState<PricePoint[]>([{ d: "", p: DEFAULT_BASE }]);
 
   const [inventory, setInventory] = useState<InventoryItem[]>([
@@ -81,6 +129,11 @@ export default function AdvancedEmasBungPWA() {
   const [showCart, setShowCart] = useState(false);
   const [showPushNotif, setShowPushNotif] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [zoomGram, setZoomGram] = useState<number | null>(null);
+  const [showInsight, setShowInsight] = useState(false);
+  const [showSoldOut, setShowSoldOut] = useState(false);
+  const [brokenPhotos, setBrokenPhotos] = useState<number[]>([]);
+  const markBroken = (gram: number) => setBrokenPhotos((b) => (b.includes(gram) ? b : [...b, gram]));
   const [removingItem, setRemovingItem] = useState<number | null>(null);
 
   const [toastMessage, setToastMessage] = useState("");
@@ -102,6 +155,33 @@ export default function AdvancedEmasBungPWA() {
 
   const SECRET_PIN = "0000";
   const WA_NUMBER = "628176767166";
+
+  // Esc menutup foto yang diperbesar / konfirmasi keluar
+  useEffect(() => {
+    if (zoomGram === null && !showLeaveConfirm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setZoomGram(null);
+      setShowLeaveConfirm(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomGram, showLeaveConfirm]);
+
+  // Navigasi mengecil saat scroll, kembali normal setelah diam
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setIsScrolling(false), 220);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
@@ -138,6 +218,7 @@ export default function AdvancedEmasBungPWA() {
         if (manual) return;
         if (d?.sell > 0) setBasePrice(d.sell);
         if (d?.buyback > 0) setBuybackPrice(d.buyback);
+        if (d?.prices && typeof d.prices === "object") setUnitPrices(d.prices);
         if (Array.isArray(d?.history) && d.history.length >= 2) {
           setHistory(
             d.history.map((h: { date: string; price: number }) => {
@@ -200,7 +281,11 @@ export default function AdvancedEmasBungPWA() {
     toastTimer.current = setTimeout(() => setShowToast(false), 2500);
   };
 
-  const getProductPrice = (gram: number, discount: number) => basePrice * gram - discount;
+  // Harga resmi per gramasi dari API; kalau tidak ada (atau mode manual) pakai harga 1 gram x berat
+  const getProductPrice = (gram: number, discount: number) => {
+    const official = manualPrice ? undefined : unitPrices[String(gram)];
+    return (official ?? basePrice * gram) - discount;
+  };
   const qtyOf = (gram: number) => cart.find((c) => c.gram === gram)?.qty ?? 0;
 
   // Tambah (+1) atau kurangi (-1) satu pecahan di Keranjang
@@ -241,14 +326,14 @@ export default function AdvancedEmasBungPWA() {
     triggerHaptic();
     if (cart.length === 0) return;
     const itemsText = cart
-      .map((item) => `- ${item.qty}x Antam ${item.gram}gr (${rp(item.price)})`)
+      .map((item) => `- ${item.qty}x Antam ${item.gram}gr (${priceRange(item.price, " - ")})`)
       .join("%0a");
-    const message = `Halo Emas BUNG! Saya mau order:%0a${itemsText}%0a%0a*Total: ${rp(cartTotal)}*%0a%0aCOD, cek emas dulu, lalu bayar via BCA a.n. Gilang Segara Bening.%0a%0aSiap janjian?`;
+    const message = `Halo Emas BUNG! Saya mau order:%0a${itemsText}%0a%0a*Estimasi total: ${priceRange(cartTotal, " - ")}*%0a(harga final dikonfirmasi saat COD)%0a%0aCOD, cek emas dulu, lalu bayar via BCA a.n. Gilang Segara Bening.%0a%0aSiap janjian?`;
 
     const newOrder = {
       id: `ORD-${Date.now().toString().slice(-4)}`,
       name: "WA Customer",
-      detail: `${cart.length} item - ${rp(cartTotal)}`,
+      detail: `${cart.length} item - ${priceRange(cartTotal, " - ")}`,
       status: "Pending",
     };
     setOrders([newOrder, ...orders]);
@@ -311,7 +396,7 @@ export default function AdvancedEmasBungPWA() {
     notify("Perubahan berhasil disimpan");
   };
 
-  const breakingNewsText = `• UPDATE HARGA: 1G ${rp(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
+  const breakingNewsText = `• UPDATE HARGA: 1G ${priceRange(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
   // Perubahan harga dibanding titik sebelumnya (hanya kalau sudah ada riwayat)
   const prevPoint = history.length >= 2 ? history[history.length - 2].p : null;
@@ -331,6 +416,105 @@ export default function AdvancedEmasBungPWA() {
   const hasChart = pts.length >= 2;
   const linePath = coords.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
   const [lastX, lastY] = coords[coords.length - 1];
+
+  // Insight harga: dihitung dari riwayat yang sama dengan grafik, hanya fakta harga (bukan saran beli/jual)
+  const insight = (() => {
+    if (pts.length < 2) return null;
+    const now = pts[pts.length - 1];
+    const change = (from: number) => ((now - from) / from) * 100;
+    const pos = max === min ? 0.5 : (now - min) / (max - min);
+    const where = pos < 0.25 ? "dekat batas bawah" : pos > 0.75 ? "dekat batas atas" : "di tengah rentang";
+    const span = pts.length >= 25 ? "30 hari terakhir" : `${pts.length} pembaruan terakhir`;
+    const jt = (n: number) => `Rp ${(n / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} jt`;
+    // "17 OKT 2026" -> "17 Okt"; teks tanggal manual dari admin dipakai apa adanya
+    const dlabel = (d: string) => {
+      const m = d.match(/^(\d{1,2}) ([A-Z]{3}) \d{4}$/);
+      return m ? `${m[1]} ${m[2][0]}${m[2].slice(1).toLowerCase()}` : d;
+    };
+    return {
+      headline: `Harga ${where} ${span}`,
+      span,
+      rows: [
+        { label: "Dibanding kemarin", pct: change(pts[pts.length - 2]) },
+        ...(pts.length >= 8 ? [{ label: "Dibanding 7 hari lalu", pct: change(pts[pts.length - 8]) }] : []),
+        ...(pts.length >= 25 ? [{ label: "Dibanding 30 hari lalu", pct: change(pts[0]) }] : []),
+      ],
+      low: `${jt(min)}${history[pts.lastIndexOf(min)]?.d ? ` · ${dlabel(history[pts.lastIndexOf(min)].d)}` : ""}`,
+      high: `${jt(max)}${history[pts.lastIndexOf(max)]?.d ? ` · ${dlabel(history[pts.lastIndexOf(max)].d)}` : ""}`,
+      avg: jt(Math.round(pts.reduce((a, b) => a + b, 0) / pts.length / 1000) * 1000),
+    };
+  })();
+  const fmtPct = (x: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+  // Kartu gramasi (grid 2 kolom): foto besar, harga range, stepper
+  const renderCard = (item: InventoryItem, idx: number) => {
+    const ready = item.stock > 0;
+    const q = qtyOf(item.gram);
+    const broken = brokenPhotos.includes(item.gram);
+    return (
+      <div
+        key={item.gram}
+        style={{ animationDelay: `${idx * 40}ms` }}
+        className={`animate-fade-up flex min-w-0 flex-col overflow-hidden rounded-[18px] ${
+          q > 0 ? "bg-sel outline outline-[1.5px] outline-selbd" : "surface"
+        } ${ready ? "" : "opacity-55"}`}
+      >
+        <button
+          onClick={() => setZoomGram(item.gram)}
+          aria-label={`Perbesar foto Antam ${item.gram} gram`}
+          className="block aspect-square w-full bg-surf active:opacity-80"
+        >
+          {broken ? (
+            <span className="grid h-full w-full place-items-center">
+              <span className="bar-chip">{item.gram}</span>
+            </span>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/images/antam/${item.gram}.jpg`}
+              alt={`Antam ${item.gram} gram`}
+              loading="lazy"
+              decoding="async"
+              onError={() => markBroken(item.gram)}
+              className="block h-full w-full object-cover"
+            />
+          )}
+        </button>
+        <div className="flex flex-1 flex-col gap-0.5 px-2.5 pb-2.5 pt-2">
+          <p className="text-[13px] font-extrabold">Antam {item.gram} gr</p>
+          {ready && <p className="text-[11.5px] font-bold text-ico">{priceRange(getProductPrice(item.gram, item.discount))}</p>}
+          <p className="text-[10.5px] text-soft">{ready ? `sisa ${item.stock}` : "Stok kosong"}</p>
+          <div className="mt-2 flex justify-center">
+            {ready ? (
+              <div className="flex w-full items-center justify-between text-[13px] font-extrabold">
+                <button
+                  onClick={() => changeQty(item.gram, -1)}
+                  disabled={q === 0}
+                  aria-label={`Kurangi Antam ${item.gram} gram`}
+                  className="grid h-8 w-8 place-items-center rounded-full bg-stp text-ico disabled:opacity-40"
+                >
+                  <Minus size={14} strokeWidth={3} />
+                </button>
+                <span className={`w-4 text-center ${q === 0 ? "text-zero" : ""}`}>{q}</span>
+                <button
+                  onClick={() => changeQty(item.gram, 1)}
+                  aria-label={`Tambah Antam ${item.gram} gram`}
+                  className="grid h-8 w-8 place-items-center rounded-full bg-lime text-limeink active:scale-90"
+                >
+                  <Plus size={14} strokeWidth={3} />
+                </button>
+              </div>
+            ) : (
+              <span className="rounded-full bg-surf px-2.5 py-1 text-[10px] font-extrabold text-soft">Habis</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  // Tersedia dulu (gramasi terbesar di atas), stok habis dipisah di bawah
+  const readyItems = [...inventory].filter((i) => i.stock > 0).sort((a, b) => b.gram - a.gram);
+  const soldOutItems = [...inventory].filter((i) => i.stock <= 0).sort((a, b) => b.gram - a.gram);
 
   return (
     <main className="phone relative mx-auto flex min-h-screen flex-col overflow-x-hidden bg-pbg pb-44 text-ink shadow-[0_0_60px_-10px_rgb(0_0_0/35%)]">
@@ -419,7 +603,7 @@ export default function AdvancedEmasBungPWA() {
         {activeTab === "beranda" && (
           <div className="animate-fade">
             <div className="px-4">
-              <p className="text-[11px] font-bold text-soft">Harga Antam 1 gram · {currentDate}</p>
+              <p className="text-[11px] font-bold text-soft">Harga acuan Antam 1 gram · {currentDate}</p>
               {isLoading ? (
                 <div className="skeleton mt-1 h-10 w-64 rounded-xl" />
               ) : (
@@ -461,67 +645,80 @@ export default function AdvancedEmasBungPWA() {
               )}
             </div>
 
+            {/* INSIGHT HARGA: satu baris, ketuk untuk detail */}
+            {insight && (
+              <>
+                <button
+                  onClick={() => setShowInsight(!showInsight)}
+                  aria-expanded={showInsight}
+                  aria-controls="insight-detail"
+                  className="mx-4 mt-2.5 flex w-[calc(100%-2rem)] items-center gap-2 rounded-[14px] bg-surf px-3.5 py-3 text-left text-[12.5px] font-extrabold"
+                >
+                  <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10.5px] text-limeink">Insight</span>
+                  <span className="min-w-0 flex-1">{insight.headline}</span>
+                  <ChevronDown size={17} strokeWidth={2.6} className={`shrink-0 transition-transform motion-reduce:transition-none ${showInsight ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
+                {showInsight && (
+                  <div id="insight-detail" className="surface animate-fade mx-4 mt-1.5 rounded-[14px] px-3.5 pb-3.5 pt-2">
+                    <ul className="flex flex-col gap-1.5 text-xs text-soft2">
+                      {insight.rows.map((r) => (
+                        <li key={r.label} className="flex justify-between gap-3">
+                          <span>{r.label}</span>
+                          <b className={`font-extrabold ${r.pct > 0 ? "text-ico" : r.pct < 0 ? "text-danger" : "text-ink"}`}>{fmtPct(r.pct)}</b>
+                        </li>
+                      ))}
+                      <li className="flex justify-between gap-3"><span>Terendah</span><b className="font-extrabold text-ink">{insight.low}</b></li>
+                      <li className="flex justify-between gap-3"><span>Tertinggi</span><b className="font-extrabold text-ink">{insight.high}</b></li>
+                      <li className="flex justify-between gap-3"><span>Rata-rata</span><b className="font-extrabold text-ink">{insight.avg}</b></li>
+                    </ul>
+                    <p className="mt-2.5 text-[10px] text-soft">Informasi harga, bukan saran investasi.</p>
+                  </div>
+                )}
+              </>
+            )}
+
+
             {/* DAFTAR PECAHAN */}
             <div id="daftar" className="mt-4 flex scroll-mt-4 items-baseline justify-between px-4 pb-1.5">
               <h2 className="text-sm font-extrabold">Pilih pecahan</h2>
-              <p className="text-[11px] text-soft">{inventory.filter((i) => i.stock > 0).length} ready stock</p>
+              <p className="text-[11px] text-soft">{inventory.filter((i) => i.stock > 0).length} gramasi tersedia</p>
             </div>
 
-            <div className="flex flex-col gap-1.5 px-3">
-              {isLoading
-                ? [1, 2, 3, 4].map((n) => <div key={n} className="skeleton h-[58px] rounded-2xl" />)
-                : inventory.map((item, idx) => {
-                    const price = getProductPrice(item.gram, item.discount);
-                    const ready = item.stock > 0;
-                    const q = qtyOf(item.gram);
-                    return (
-                      <div
-                        key={item.gram}
-                        style={{ animationDelay: `${idx * 40}ms` }}
-                        className={`animate-fade-up flex items-center gap-2.5 rounded-2xl p-2.5 ${
-                          q > 0 ? "bg-sel outline outline-[1.5px] outline-selbd" : "surface"
-                        } ${ready ? "" : "opacity-55"}`}
-                      >
-                        <div className="bar-chip">{item.gram}</div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-extrabold">Antam {item.gram} gr</p>
-                          <p className="text-[10.5px] text-soft">
-                            {rp(price)} · {ready ? `sisa ${item.stock}` : "habis"}
-                          </p>
-                        </div>
-                        {ready ? (
-                          <div className="flex items-center gap-2 text-[13px] font-extrabold">
-                            <button
-                              onClick={() => changeQty(item.gram, -1)}
-                              disabled={q === 0}
-                              aria-label={`Kurangi Antam ${item.gram} gram`}
-                              className="grid h-7 w-7 place-items-center rounded-full bg-stp text-ico disabled:opacity-40"
-                            >
-                              <Minus size={14} strokeWidth={3} />
-                            </button>
-                            <span className={`w-4 text-center ${q === 0 ? "text-zero" : ""}`}>{q}</span>
-                            <button
-                              onClick={() => changeQty(item.gram, 1)}
-                              aria-label={`Tambah Antam ${item.gram} gram`}
-                              className="grid h-7 w-7 place-items-center rounded-full bg-lime text-limeink active:scale-90"
-                            >
-                              <Plus size={14} strokeWidth={3} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="rounded-full bg-surf px-2.5 py-1 text-[10px] font-extrabold text-soft">Habis</span>
-                        )}
-                      </div>
-                    );
-                  })}
-            </div>
-
-            <div className="mx-4 mt-5 overflow-hidden whitespace-nowrap rounded-xl bg-surf py-2 text-[11px] font-bold text-soft2">
-              <div className="animate-marquee">
-                <span className="mx-2 tracking-wider">{breakingNewsText}</span>
-                <span className="mx-2 tracking-wider">{breakingNewsText}</span>
+            {isLoading ? (
+              <div className="grid grid-cols-2 gap-2 px-3">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="skeleton aspect-[3/4] rounded-[18px]" />
+                ))}
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2 px-3">{readyItems.map((item, idx) => renderCard(item, idx))}</div>
+                <div className="mx-4 mt-4 overflow-hidden whitespace-nowrap rounded-xl bg-surf py-2 text-[11px] font-bold text-soft2">
+                  <div className="animate-marquee">
+                    <span className="mx-2 tracking-wider">{breakingNewsText}</span>
+                    <span className="mx-2 tracking-wider">{breakingNewsText}</span>
+                  </div>
+                </div>
+                {soldOutItems.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => setShowSoldOut(!showSoldOut)}
+                      aria-expanded={showSoldOut}
+                      aria-controls="stok-habis"
+                      className="mx-3 mt-4 flex w-[calc(100%-1.5rem)] items-center justify-between rounded-2xl border-[1.5px] border-dashed border-zero bg-transparent px-3.5 py-3 text-[12.5px] font-extrabold text-soft2"
+                    >
+                      <span>Stok habis ({soldOutItems.length})</span>
+                      <ChevronDown size={18} strokeWidth={2.6} className={`transition-transform motion-reduce:transition-none ${showSoldOut ? "rotate-180" : ""}`} aria-hidden="true" />
+                    </button>
+                    {showSoldOut && (
+                      <div id="stok-habis" className="mt-2 grid grid-cols-2 gap-2 px-3">
+                        {soldOutItems.map((item, idx) => renderCard(item, idx))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -778,10 +975,10 @@ export default function AdvancedEmasBungPWA() {
                       removingItem === c.gram ? "-translate-x-full opacity-0" : "translate-x-0 opacity-100"
                     }`}
                   >
-                    <div className="bar-chip">{c.gram}</div>
+                    <GramPhoto gram={c.gram} broken={brokenPhotos.includes(c.gram)} onBroken={() => markBroken(c.gram)} />
                     <div className="min-w-0 flex-1">
                       <h4 className="text-sm font-extrabold">Antam {c.gram} gr</h4>
-                      <p className="text-[11px] font-bold text-ico">{rp(c.price)} / keping</p>
+                      <p className="text-[11px] font-bold text-ico">{priceRange(c.price)} / keping</p>
                     </div>
                     <div className="flex items-center gap-1.5 text-[13px] font-extrabold">
                       <button onClick={() => changeQty(c.gram, -1)} aria-label="Kurangi" className="grid h-7 w-7 place-items-center rounded-full bg-stp text-ico active:scale-90">
@@ -811,7 +1008,7 @@ export default function AdvancedEmasBungPWA() {
               </div>
               <div className="mb-4 mt-3 flex items-end justify-between">
                 <span className="text-sm font-extrabold">Total</span>
-                <span className="text-3xl font-extrabold tracking-tight text-ico">{rp(cartTotal)}</span>
+                <span className="text-2xl font-extrabold tracking-tight text-ico">{priceRange(cartTotal)}</span>
               </div>
               <button onClick={handleCheckoutWA} disabled={cart.length === 0} className="btn btn-wa w-full py-4 text-sm">
                 <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
@@ -822,12 +1019,12 @@ export default function AdvancedEmasBungPWA() {
       )}
 
       {/* DOCK BAWAH: ringkasan Keranjang + navigasi dalam satu blok */}
-      <div className="phone fixed bottom-0 left-1/2 z-40 -translate-x-1/2 bg-gradient-to-t from-pbg via-pbg/95 to-transparent pt-2">
+      <div className="phone pointer-events-none fixed bottom-0 left-1/2 z-40 -translate-x-1/2 pt-2">
         {totalCartItemsCount > 0 && !showCart && (
-          <div className="px-3 pb-2">
+          <div className="pointer-events-auto px-3 pb-2">
             <button
               onClick={() => setShowCart(true)}
-              aria-label={`Buka Keranjang, ${totalCartItemsCount} item, total ${rp(cartTotal)}`}
+              aria-label={`Buka Keranjang, ${totalCartItemsCount} item, total ${priceRange(cartTotal)}`}
               className="animate-fade-up flex w-full items-center gap-3 rounded-2xl bg-row p-2 pl-2.5 text-left shadow-[0_10px_30px_-8px_rgb(0_0_0/40%)] ring-1 ring-selbd/50 active:scale-[0.99]"
             >
               <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surf text-ico">
@@ -843,7 +1040,7 @@ export default function AdvancedEmasBungPWA() {
                 <span className="block text-[11px] font-bold text-soft">
                   Keranjang · {cart.reduce((a, c) => a + c.gram * c.qty, 0).toLocaleString("id-ID")} gram emas
                 </span>
-                <span className="block truncate text-base font-extrabold tracking-tight">{rp(cartTotal)}</span>
+                <span className="block truncate text-base font-extrabold tracking-tight">{priceRange(cartTotal)}</span>
               </span>
               <span className="btn btn-lime shrink-0 rounded-xl px-4 py-3 text-[13px]">
                 Checkout <ArrowRight size={15} strokeWidth={3} />
@@ -851,7 +1048,12 @@ export default function AdvancedEmasBungPWA() {
             </button>
           </div>
         )}
-      <nav className="flex justify-around border-t border-surf bg-pbg px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+      <nav
+        aria-label="Navigasi utama"
+        className={`pointer-events-auto mx-auto mb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around rounded-[28px] border border-surf bg-pbg/90 px-2 shadow-[0_8px_30px_-6px_rgb(0_0_0/45%)] backdrop-blur-xl transition-all duration-300 ease-out motion-reduce:transition-none ${
+          isScrolling ? "w-[68%] py-1" : "w-[calc(100%-1.5rem)] py-2"
+        }`}
+      >
         {TABS.map(({ id, label, Icon }) => {
           const active = activeTab === id;
           return (
@@ -863,17 +1065,50 @@ export default function AdvancedEmasBungPWA() {
                 if (id === "edukasi") setShowLeaveConfirm(true);
                 else setActiveTab(id);
               }}
-              className={`flex w-16 flex-col items-center gap-0.5 py-1 ${active ? "text-ico" : "text-soft"}`}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={`flex flex-1 flex-col items-center py-1 ${active ? "text-ico" : "text-soft"}`}
             >
               <span className={`grid h-7 w-12 place-items-center rounded-full transition-colors ${active ? "bg-surf" : ""}`}>
                 <Icon size={20} strokeWidth={active ? 2.75 : 2.25} />
               </span>
-              <span className="text-[10.5px] font-bold">{label}</span>
+              <span
+                className={`overflow-hidden text-[10.5px] font-bold transition-all duration-300 motion-reduce:transition-none ${
+                  isScrolling ? "max-h-0 opacity-0" : "mt-0.5 max-h-4 opacity-100"
+                }`}
+              >
+                {label}
+              </span>
             </button>
           );
         })}
       </nav>
       </div>
+
+      {/* FOTO GRAMASI DIPERBESAR */}
+      {zoomGram !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto Antam ${zoomGram} gram`}
+          onClick={() => setZoomGram(null)}
+          className="phone animate-fade fixed left-1/2 top-0 z-[70] flex h-full -translate-x-1/2 items-center justify-center bg-black/85 p-5 backdrop-blur-md"
+        >
+          <div onClick={(e) => e.stopPropagation()} className="relative w-full overflow-hidden rounded-3xl bg-pbg">
+            <button
+              autoFocus
+              onClick={() => setZoomGram(null)}
+              aria-label="Tutup"
+              className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white"
+            >
+              <X size={18} strokeWidth={2.75} />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/images/antam/${zoomGram}.jpg`} alt={`Antam ${zoomGram} gram, tampak depan dan belakang`} className="block h-auto w-full" />
+            <p className="px-4 py-3 text-center text-sm font-extrabold">Antam {zoomGram} gr · 999,9 Fine Gold</p>
+          </div>
+        </div>
+      )}
 
       {/* KONFIRMASI KELUAR KE YOUTUBE */}
       {showLeaveConfirm && (
