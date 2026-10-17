@@ -199,7 +199,8 @@ export default function AdvancedEmasBungPWA() {
         if (parsed.basePrice) setBasePrice(parsed.basePrice);
         if (parsed.buybackPrice) setBuybackPrice(parsed.buybackPrice);
         if (parsed.inventory) setInventory(parsed.inventory);
-        if (parsed.gallery) setGallery(parsed.gallery);
+        // Data lama di browser masih menunjuk ke cod2.png (sudah diganti jadi .jpg)
+        if (parsed.gallery) setGallery(parsed.gallery.map((g: { img: string }) => (g.img === "/images/cod2.png" ? { ...g, img: "/images/cod2.jpg" } : g)));
         if (parsed.orders) setOrders(parsed.orders);
         if (parsed.history?.length) setHistory(parsed.history);
         setCurrentDate(parsed.currentDate || defaultFormattedDate);
