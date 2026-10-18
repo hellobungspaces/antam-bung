@@ -5,7 +5,7 @@ const BASE = "https://logam-mulia-api.iamutaki.workers.dev/api/prices";
 
 type Row = { material: string; materialType: string; weight: number; sellPrice: number; buybackPrice: number | null; recordedDate: string };
 type Result =
-  | { ok: true; sell: number; buyback: number | null; updatedAt: string; history: { date: string; price: number }[]; prices: Record<string, number> }
+  | { ok: true; sell: number; buyback: number | null; antamBuyback: number | null; updatedAt: string; history: { date: string; price: number }[]; prices: Record<string, number> }
   | { ok: false; detail: string };
 
 async function getJson(path: string): Promise<Row[]> {
@@ -27,10 +27,12 @@ async function getAntam1g(): Promise<Result> {
   };
 
   try {
-    const [hist, bbRows, nowRows] = await Promise.all([
+    const [hist, bbRows, nowRows, aggA, aggB] = await Promise.all([
       getJson("logammulia/history?weight=1&material=gold&length=60"),
       getJson("indogold").catch(() => [] as Row[]),
       getJson("logammulia").catch(() => [] as Row[]),
+      getJson("hargaemas-com").catch(() => [] as Row[]),
+      getJson("hargaemas-net").catch(() => [] as Row[]),
     ]);
 
     // Harga resmi per gramasi (harga per gram tiap gramasi tidak sama, jadi jangan dikali 1 gram)
@@ -50,8 +52,15 @@ async function getAntam1g(): Promise<Result> {
     const [updatedAt, sell] = days[days.length - 1];
     const buyback = bbRows.find((r) => r.materialType === "Antam" && r.weight === 1 && r.buybackPrice)?.buybackPrice ?? null;
 
+    // Buyback Antam resmi tidak tersedia (logammulia.com memblokir server). Pembanding diambil dari agregator
+    // harga, dan hanya dipakai kalau harga jual 1 gram Antam di sana sama (±0,5%) dengan logammulia.com.
+    const antamBuyback =
+      [...aggA, ...aggB].find(
+        (r) => r.weight === 1 && r.buybackPrice && r.buybackPrice > 0 && /antam|lm|logam mulia/i.test(r.materialType) && Math.abs(r.sellPrice - sell) / sell <= 0.005,
+      )?.buybackPrice ?? null;
+
     cacheLife({ stale: 600, revalidate: 3600, expire: 86400 });
-    return { ok: true, sell, buyback, updatedAt, history: days.map(([date, price]) => ({ date, price })), prices };
+    return { ok: true, sell, buyback, antamBuyback, updatedAt, history: days.map(([date, price]) => ({ date, price })), prices };
   } catch (err) {
     return fail(err instanceof Error ? `${err.name}: ${err.message}` : "unknown");
   }

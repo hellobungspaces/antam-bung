@@ -23,9 +23,14 @@ import {
   Save,
   GraduationCap,
   CirclePlay,
+  Tag,
+  TrendingUp,
+  Zap,
+  Eye,
   RefreshCw,
 } from "lucide-react";
 
+type WaConfirm = { title: string; lead: string; rows: [string, string][]; note: string; url: string; onOpen?: () => void };
 type InventoryItem = { gram: number; stock: number; discount: number };
 type CartItem = { gram: number; qty: number; price: number };
 type Order = { id: string; name: string; detail: string; status: string };
@@ -95,6 +100,7 @@ const agoLabel = (ms: number) => {
 
 const INFO_SECTIONS = [
   { id: "info-galeri", label: "Galeri" },
+  { id: "info-kenapa", label: "Kenapa Bung" },
   { id: "info-cara", label: "Cara order" },
   { id: "info-faq", label: "Tanya jawab" },
 ];
@@ -112,6 +118,9 @@ export default function AdvancedEmasBungPWA() {
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [antamSell, setAntamSell] = useState<number | null>(null);
+  const [antamBuyback, setAntamBuyback] = useState<number | null>(null);
+  const [waConfirm, setWaConfirm] = useState<WaConfirm | null>(null);
   const [pulling, setPulling] = useState(false);
   const [infoSection, setInfoSection] = useState("info-galeri");
   const [range, setRange] = useState<7 | 30>(30);
@@ -269,6 +278,8 @@ export default function AdvancedEmasBungPWA() {
         if (Array.isArray(st.inventory)) setInventory(st.inventory);
         if (typeof st.spread === "number") setSpreadPct(st.spread);
       }
+      if (d?.sell > 0) setAntamSell(d.sell);
+      setAntamBuyback(d?.antamBuyback > 0 ? d.antamBuyback : null);
       const manualOn = server ? st?.manual?.enabled === true : manual;
       setManualPrice(manualOn);
       if (manualOn) {
@@ -424,33 +435,62 @@ export default function AdvancedEmasBungPWA() {
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
   const totalCartItemsCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  const handleCheckoutWA = () => {
+  const askWa = (c: WaConfirm) => {
     triggerHaptic();
+    setWaConfirm(c);
+  };
+
+  const handleCheckoutWA = () => {
     if (cart.length === 0) return;
     const itemsText = cart
       .map((item) => `- ${item.qty}x Antam ${item.gram}gr (${pr(item.price, " - ")})`)
       .join("%0a");
     const message = `Halo Emas BUNG! Saya mau order:%0a${itemsText}%0a%0a*Estimasi total: ${pr(cartTotal, " - ")}*%0a(harga final dikonfirmasi saat COD)%0a%0aCOD, cek emas dulu, lalu bayar via BCA a.n. Gilang Segara Bening.%0a%0aSiap janjian?`;
 
-    const newOrder = {
-      id: `ORD-${Date.now().toString().slice(-4)}`,
-      name: "WA Customer",
-      detail: `${cart.length} item - ${pr(cartTotal, " - ")}`,
-      status: "Pending",
-    };
-    setOrders([newOrder, ...orders]);
-    saveToStorage({ orders: [newOrder, ...orders] });
-
-    window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, "_blank");
-    setCart([]);
-    setShowCart(false);
+    askWa({
+      title: "Buka WhatsApp untuk memesan?",
+      lead: "Kamu akan diarahkan ke WhatsApp Bung Gilang untuk memesan emas berikut.",
+      rows: [...cart.map((item): [string, string] => [`Antam ${item.gram} gr × ${item.qty}`, pr(item.price * item.qty)]), ["Total", pr(cartTotal)]],
+      note: "Pesan sudah terisi otomatis dan bisa kamu edit sebelum dikirim. Pembayaran dilakukan saat COD, setelah emas dicek.",
+      url: `https://wa.me/${WA_NUMBER}?text=${message}`,
+      onOpen: () => {
+        const newOrder = {
+          id: `ORD-${Date.now().toString().slice(-4)}`,
+          name: "WA Customer",
+          detail: `${cart.length} item - ${pr(cartTotal, " - ")}`,
+          status: "Pending",
+        };
+        setOrders([newOrder, ...orders]);
+        saveToStorage({ orders: [newOrder, ...orders] });
+        setCart([]);
+        setShowCart(false);
+      },
+    });
   };
 
   const handleBuybackWA = () => {
-    triggerHaptic();
     const msg = `Halo Bung, saya mau jual (buyback) Antam pecahan *${bbGramNum}gr*.%0aCetakan: ${bbEdition.toUpperCase()}, Kondisi: ${bbCondition.toUpperCase()}.%0aEstimasi sistem: *${rp(displayEstimate)}*. Bisa atur jadwal ketemuan COD?`;
-    window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
+    askWa({
+      title: "Buka WhatsApp untuk menjual emas?",
+      lead: "Kamu akan diarahkan ke WhatsApp Bung Gilang untuk menjual emas Antam kamu.",
+      rows: [
+        ["Pecahan", `${bbGramNum} gram`],
+        ["Cetakan / kondisi", `${bbEdition === "retro" ? "Klasik" : "CertiCard"} · ${bbCondition === "baret" ? "Baret / Buka Segel" : "Mulus"}`],
+        ["Estimasi diterima", rp(displayEstimate)],
+      ],
+      note: "Harga final dicek saat COD. Pesan sudah terisi otomatis dan bisa kamu edit sebelum dikirim.",
+      url: `https://wa.me/${WA_NUMBER}?text=${msg}`,
+    });
   };
+
+  const handleChatWA = () =>
+    askWa({
+      title: "Buka WhatsApp untuk bertanya?",
+      lead: "Kamu akan diarahkan ke WhatsApp Bung Gilang untuk menanyakan ketersediaan Antam dan jadwal COD.",
+      rows: [["Topik", "Ketersediaan dan jadwal COD"]],
+      note: "Pesan pembuka sudah terisi. Kamu bisa menggantinya dengan pertanyaanmu sendiri.",
+      url: `https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`,
+    });
 
   const handleLogoTap = () => {
     triggerHaptic();
@@ -539,6 +579,13 @@ export default function AdvancedEmasBungPWA() {
     triggerHaptic();
     notify("Perubahan berhasil disimpan");
   };
+
+  // Perbandingan dengan Antam. Harga Bung berupa rentang (batas atas = harga Antam dikurangi diskon), jadi penghematan
+  // yang diklaim adalah "hingga" selisih ke batas bawah rentang 1 gram. Hanya tampil kalau datanya lengkap dan hasilnya positif.
+  const oneGram = inventory.find((i) => i.gram === 1);
+  const bungLo1 = oneGram ? Math.round((getProductPrice(1, oneGram.discount) * (1 - spreadPct / 100)) / 1000) * 1000 : 0;
+  const saveSell = antamSell && oneGram && oneGram.stock > 0 ? Math.round((antamSell - bungLo1) / 1000) * 1000 : 0;
+  const saveBuyback = antamBuyback && Number(buybackPrice) > 0 ? Math.round((Number(buybackPrice) - antamBuyback) / 1000) * 1000 : 0;
 
   const breakingNewsText = `• UPDATE HARGA: 1G ${pr(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
@@ -732,12 +779,7 @@ export default function AdvancedEmasBungPWA() {
         </h1>
         <div className="flex gap-2">
           <button
-            onClick={() =>
-              window.open(
-                `https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`,
-                "_blank"
-              )
-            }
+            onClick={handleChatWA}
             aria-label="Chat WhatsApp"
             className="btn btn-soft h-[34px] w-[34px] rounded-full"
           >
@@ -807,6 +849,11 @@ export default function AdvancedEmasBungPWA() {
                 Buyback {isLoading ? "..." : rp(buybackPrice)}
                 {updatedAtMs !== null && !manualPrice && <> · {agoLabel(nowMs - updatedAtMs)}</>}
               </p>
+              {!isLoading && saveSell >= 1000 && (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-up/15 px-3 py-1 text-xs font-extrabold text-up">
+                  <BadgeCheck size={13} strokeWidth={3} /> Hemat hingga {rp(saveSell)} dari harga Antam
+                </p>
+              )}
             </div>
 
             {/* GRAFIK dari riwayat harga yang tersimpan: ketuk/geser untuk lihat harga per hari */}
@@ -947,6 +994,7 @@ export default function AdvancedEmasBungPWA() {
                     )}
                   </>
                 )}
+
               </>
             )}
           </div>
@@ -1129,6 +1177,34 @@ export default function AdvancedEmasBungPWA() {
               </div>
             </div>
 
+            {/* Kenapa beli di Bung, di bawah galeri */}
+            <div id="info-kenapa" className="scroll-mt-4">
+              <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
+              <p className="mb-3 text-xs font-semibold text-soft">Lima alasan, tanpa janji kosong</p>
+              <div className="surface divide-y divide-surf px-4">
+                {[
+                  ...(saveSell >= 1000 ? [{ Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam.", note: `Hemat hingga ${rp(saveSell)} per gram` }] : []),
+                  ...(saveBuyback >= 1000 ? [{ Icon: TrendingUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam.", note: `+${rp(saveBuyback)} per gram` }] : []),
+                  { Icon: Zap, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
+                  { Icon: Eye, title: "Cek fisik dulu", desc: "Periksa segel dan sertifikat bareng, baru bayar." },
+                  { Icon: ShieldCheck, title: "Transparan", desc: "Rekening resmi atas nama sendiri dan galeri bukti COD di atas." },
+                ].map(({ Icon, title, desc, note }) => (
+                  <div key={title} className="flex items-start gap-3 py-3">
+                    <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-lime text-limeink">
+                      <Icon size={18} strokeWidth={2.4} />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-[13px] font-extrabold">{title}</h3>
+                      <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-soft">{desc}</p>
+                      {note && <p className="mt-0.5 text-[11px] font-extrabold text-up">{note}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[10.5px] leading-snug text-soft">
+                Perbandingan memakai harga Antam di logammulia.com dan perkiraan buyback Antam dari agregator harga, dihitung otomatis. Emas BUNG bukan bagian dari PT Aneka Tambang Tbk.
+              </p>
+            </div>
 
             <div className="grid grid-cols-3 gap-2.5 text-center">
               {[
@@ -1415,6 +1491,56 @@ export default function AdvancedEmasBungPWA() {
                 className="btn btn-lime flex-1 py-3 text-sm"
               >
                 Buka YouTube
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* KONFIRMASI WHATSAPP */}
+      {waConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wa-title"
+          onClick={() => setWaConfirm(null)}
+          onKeyDown={(e) => e.key === "Escape" && setWaConfirm(null)}
+          className="phone animate-fade fixed left-1/2 top-0 z-[80] flex h-full -translate-x-1/2 items-end bg-black/70 backdrop-blur-sm"
+        >
+          <div onClick={(e) => e.stopPropagation()} className="animate-fade-up w-full rounded-t-3xl bg-pbg px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2.5">
+            <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-soft/40" aria-hidden="true" />
+            <div className="flex items-center gap-3">
+              <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-xl bg-wa text-white">
+                <MessageCircle size={20} strokeWidth={2.4} />
+              </span>
+              <h3 id="wa-title" className="text-[17px] font-extrabold leading-tight">{waConfirm.title}</h3>
+            </div>
+            <p className="mt-2 text-[12.5px] font-semibold leading-snug text-soft2">{waConfirm.lead}</p>
+            <div className="mt-3 rounded-[14px] bg-surf px-3 py-1">
+              {waConfirm.rows.map(([k, v], i) => (
+                <div key={k + i} className={`flex justify-between gap-3 py-2 text-[12.5px] font-bold ${i > 0 ? "border-t border-soft/15" : ""} ${i === waConfirm.rows.length - 1 && waConfirm.rows.length > 1 ? "text-[13.5px] font-extrabold" : ""}`}>
+                  <span className="text-soft2">{k}</span>
+                  <span className="text-right">{v}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mx-0.5 mt-2.5 text-[11.5px] font-semibold leading-snug text-soft">{waConfirm.note}</p>
+            <div className="mt-3.5 flex flex-col gap-1.5">
+              <a
+                href={waConfirm.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                autoFocus
+                onClick={() => {
+                  waConfirm.onOpen?.();
+                  setWaConfirm(null);
+                }}
+                className="btn btn-wa w-full py-3.5 text-sm"
+              >
+                <span className="text-sm font-extrabold">Buka WhatsApp</span>
+              </a>
+              <button type="button" onClick={() => setWaConfirm(null)} className="w-full py-2.5 text-soft">
+                <span className="text-[13px] font-extrabold">Kembali</span>
               </button>
             </div>
           </div>
