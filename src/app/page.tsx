@@ -29,7 +29,6 @@ import {
   Tag,
   TrendingUp,
   Zap,
-  Eye,
   RefreshCw,
 } from "lucide-react";
 
@@ -101,12 +100,12 @@ const agoLabel = (ms: number) => {
   return `Diperbarui ${Math.floor(m / 60)} jam lalu`;
 };
 
-const INFO_SECTIONS = [
-  { id: "info-galeri", label: "Galeri" },
-  { id: "info-kenapa", label: "Kenapa Bung" },
-  { id: "info-cara", label: "Cara order" },
-  { id: "info-faq", label: "Tanya jawab" },
-];
+const INFO_TABS = [
+  { id: "kenalan", label: "Kenalan" },
+  { id: "panduan", label: "Panduan" },
+  { id: "syariah", label: "Syariah" },
+] as const;
+type InfoTab = (typeof INFO_TABS)[number]["id"];
 
 const THEME_KEY = "emasbung-theme";
 const THEME_COLORS = { light: "#faf7ef", dark: "#07130f" };
@@ -174,10 +173,9 @@ export default function AdvancedEmasBungPWA() {
   };
 
   const [antamSell, setAntamSell] = useState<number | null>(null);
-  const [antamBuyback, setAntamBuyback] = useState<number | null>(null);
   const [waConfirm, setWaConfirm] = useState<WaConfirm | null>(null);
   const [pulling, setPulling] = useState(false);
-  const [infoSection, setInfoSection] = useState("info-galeri");
+  const [infoTab, setInfoTab] = useState<InfoTab>("kenalan");
   const [range, setRange] = useState<7 | 30>(30);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(null);
@@ -233,7 +231,6 @@ export default function AdvancedEmasBungPWA() {
   const [showToast, setShowToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const [tapCount, setTapCount] = useState(0);
   const [showAdminPin, setShowAdminPin] = useState(false);
@@ -249,21 +246,6 @@ export default function AdvancedEmasBungPWA() {
   const SECRET_PIN = "0000";
   const WA_NUMBER = "628176767166";
   const pr = (n: number, sep?: string) => priceRange(n, sep, spreadPct);
-
-  // Chip Info mengikuti bagian yang sedang terlihat
-  useEffect(() => {
-    if (activeTab !== "info") return;
-    const els = INFO_SECTIONS.map((x) => document.getElementById(x.id)).filter((e): e is HTMLElement => !!e);
-    const io = new IntersectionObserver(
-      (entries) => {
-        const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (top) setInfoSection(top.target.id);
-      },
-      { rootMargin: "0px 0px -60% 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [activeTab]);
 
   // Esc menutup foto yang diperbesar / konfirmasi keluar
   useEffect(() => {
@@ -334,7 +316,6 @@ export default function AdvancedEmasBungPWA() {
         if (typeof st.spread === "number") setSpreadPct(st.spread);
       }
       if (d?.sell > 0) setAntamSell(d.sell);
-      setAntamBuyback(d?.antamBuyback > 0 ? d.antamBuyback : null);
       const manualOn = server ? st?.manual?.enabled === true : manual;
       setManualPrice(manualOn);
       if (manualOn) {
@@ -640,7 +621,6 @@ export default function AdvancedEmasBungPWA() {
   const oneGram = inventory.find((i) => i.gram === 1);
   const bungLo1 = oneGram ? Math.round((getProductPrice(1, oneGram.discount) * (1 - spreadPct / 100)) / 1000) * 1000 : 0;
   const saveSell = antamSell && oneGram && oneGram.stock > 0 ? Math.round((antamSell - bungLo1) / 1000) * 1000 : 0;
-  const saveBuyback = antamBuyback && Number(buybackPrice) > 0 ? Math.round((Number(buybackPrice) - antamBuyback) / 1000) * 1000 : 0;
 
   const breakingNewsText = `• UPDATE HARGA: 1G ${pr(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
@@ -1199,145 +1179,182 @@ export default function AdvancedEmasBungPWA() {
         {/* INFO */}
         {activeTab === "info" && (
           <section className="animate-fade space-y-5 px-4">
-            {/* Navigasi cepat ke bagian di tab ini */}
-            <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5" role="group" aria-label="Bagian Info">
-              {INFO_SECTIONS.map((sec) => (
+            {/* Tiga tab di dalam Info supaya tidak satu halaman panjang */}
+            <div className="flex gap-0.5 rounded-full bg-surf p-[3px]" role="tablist" aria-label="Bagian Info">
+              {INFO_TABS.map((t) => (
                 <button
-                  key={sec.id}
+                  key={t.id}
                   type="button"
-                  onClick={() => {
-                    setInfoSection(sec.id);
-                    document.getElementById(sec.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  aria-pressed={infoSection === sec.id}
-                  className={`shrink-0 rounded-full px-3 py-1.5 ${infoSection === sec.id ? "bg-ink text-pbg" : "bg-surf text-soft"}`}
+                  role="tab"
+                  aria-selected={infoTab === t.id}
+                  onClick={() => setInfoTab(t.id)}
+                  className={`flex-1 rounded-full py-2 text-xs font-extrabold ${infoTab === t.id ? "bg-ink text-pbg" : "text-soft"}`}
                 >
-                  <span className="text-xs font-bold">{sec.label}</span>
+                  {t.label}
                 </button>
               ))}
             </div>
 
-            {/* Galeri COD paling atas */}
-            <div id="info-galeri" className="scroll-mt-4">
-              <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
-              <p className="mb-4 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi</p>
-              <div className="space-y-4">
-                {gallery.map((pic) => (
-                  <div key={pic.id} className="surface overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={pic.img} loading="lazy" alt="Kolase COD Emas BUNG" className="block h-auto w-full bg-surf object-contain" />
-                    <div className="flex items-center justify-between p-4">
-                      <span className="flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-xs font-extrabold text-limeink">
-                        <BadgeCheck size={14} strokeWidth={2.75} /> Terverifikasi
-                      </span>
-                      <p className="flex items-center gap-1 truncate text-xs font-bold text-soft">
-                        <MapPin size={14} /> {pic.loc}
-                      </p>
-                    </div>
+            {infoTab === "kenalan" && (
+              <div key="kenalan" className="animate-fade space-y-5">
+                {/* Galeri COD paling atas */}
+                <div id="info-galeri" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
+                  <p className="mb-4 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi</p>
+                  <div className="space-y-4">
+                    {gallery.map((pic) => (
+                      <div key={pic.id} className="surface overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={pic.img} loading="lazy" alt="Kolase COD Emas BUNG" className="block h-auto w-full bg-surf object-contain" />
+                        <div className="flex items-center justify-between p-4">
+                          <span className="flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-xs font-extrabold text-limeink">
+                            <BadgeCheck size={14} strokeWidth={2.75} /> Terverifikasi
+                          </span>
+                          <p className="flex items-center gap-1 truncate text-xs font-bold text-soft">
+                            <MapPin size={14} /> {pic.loc}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Kenapa beli di Bung, di bawah galeri */}
-            <div id="info-kenapa" className="scroll-mt-4">
-              <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
-              <p className="mb-3 text-xs font-semibold text-soft">Lima alasan, tanpa janji kosong</p>
-              <div className="surface divide-y divide-surf px-4">
-                {[
-                  ...(saveSell >= 1000 ? [{ Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam.", note: `Hemat hingga ${rp(saveSell)} per gram` }] : []),
-                  ...(saveBuyback >= 1000 ? [{ Icon: TrendingUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam.", note: `+${rp(saveBuyback)} per gram` }] : []),
-                  { Icon: Zap, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
-                  { Icon: Eye, title: "Cek fisik dulu", desc: "Periksa segel dan sertifikat bareng, baru bayar." },
-                  { Icon: ShieldCheck, title: "Transparan", desc: "Rekening resmi atas nama sendiri dan galeri bukti COD di atas." },
-                ].map(({ Icon, title, desc, note }) => (
-                  <div key={title} className="flex items-start gap-3 py-3">
-                    <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-lime text-limeink">
-                      <Icon size={18} strokeWidth={2.4} />
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="text-[13px] font-extrabold">{title}</h3>
-                      <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-soft">{desc}</p>
-                      {note && <p className="mt-0.5 text-[11px] font-extrabold text-up">{note}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-2 text-[10.5px] leading-snug text-soft">
-                Perbandingan memakai harga Antam di logammulia.com dan perkiraan buyback Antam dari agregator harga, dihitung otomatis. Emas BUNG bukan bagian dari PT Aneka Tambang Tbk.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5 text-center">
-              {[
-                { v: "50+", l: "Transaksi COD" },
-                { v: "999,9", l: "Kemurnian" },
-                { v: "Jabodetabek", l: "Area COD" },
-              ].map((s) => (
-                <div key={s.l} className="surface p-3.5">
-                  <p className={`font-extrabold text-ico ${s.v.length > 7 ? "text-[15px] leading-[1.6]" : "text-xl"}`}>{s.v}</p>
-                  <p className="mt-1 text-[10px] font-bold text-soft">{s.l}</p>
                 </div>
-              ))}
-            </div>
 
-            <div id="info-cara" className="scroll-mt-4">
-              <h2 className="text-2xl font-extrabold tracking-tight">Cara Order</h2>
-              <p className="mb-3 text-xs font-semibold text-soft">Empat langkah, aman dan transparan</p>
-              <div className="surface p-4">
-              <div className="space-y-2.5">
-                {[
-                  { title: "Pilih Pecahan", desc: "Atur jumlah Antam ready stock di Home, atau hitung dulu di tab Buyback." },
-                  { title: "Checkout via WhatsApp", desc: "Tekan Checkout, detail pesanan terkirim otomatis ke WhatsApp Bung." },
-                  { title: "Atur Jadwal COD", desc: "Ketemu di stasiun KRL Jabodetabek, area publik ramai, atau diantar langsung." },
-                  { title: "Cek Fisik & Bayar", desc: "Cek segel & sertifikat Antam bareng, bayar transfer BCA a.n. Gilang Segara Bening atau tunai." },
-                ].map((item, idx) => (
-                  <div key={item.title} className="flex items-start gap-3 rounded-2xl bg-pbg p-3">
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime text-xs font-extrabold text-limeink">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <h4 className="text-sm font-extrabold">{item.title}</h4>
-                      <p className="mt-0.5 text-xs font-semibold leading-snug text-soft">{item.desc}</p>
-                    </div>
+                {/* Kenapa beli di Bung, di bawah galeri */}
+                <div id="info-kenapa" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
+                  <p className="mb-3 text-xs font-semibold text-soft">Tiga alasan, tanpa janji kosong</p>
+                  <div className="surface divide-y divide-surf px-4">
+                    {[
+                      { Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam." },
+                      { Icon: TrendingUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam." },
+                      { Icon: Zap, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
+                    ].map(({ Icon, title, desc }) => (
+                      <div key={title} className="flex items-start gap-3 py-3">
+                        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-lime text-limeink">
+                          <Icon size={18} strokeWidth={2.4} />
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="text-[13px] font-extrabold">{title}</h3>
+                          <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-soft">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              </div>
-            </div>
+                  <p className="mt-2 text-[10.5px] leading-snug text-soft">
+                    Emas BUNG bukan bagian dari PT Aneka Tambang Tbk.
+                  </p>
+                </div>
 
-            <div id="info-faq" className="scroll-mt-4">
-              <h2 className="mb-3 text-2xl font-extrabold tracking-tight">Tanya Jawab</h2>
-              <div className="surface divide-y divide-surf overflow-hidden">
-                {[
-                  { q: "Emasnya asli gak?", a: "Antam Logam Mulia resmi, segel CertiEye utuh. Kamu bisa scan dan cek sertifikat bareng sebelum transaksi." },
-                  { q: "Rekening pembayaran resminya?", a: "Semua transaksi transfer hanya lewat rekening BCA atas nama Gilang Segara Bening. Waspada penipuan di luar rekening tersebut." },
-                  { q: "Di mana titik temu COD?", a: "Fleksibel! Bisa di stasiun KRL Jabodetabek terdekat, coffee shop/mall ramai, mampir ke rumah, atau diantar ke rumah kamu." },
-                  { q: "Terima buyback emas lama?", a: "Ya! Emas Antam dari pecahan kecil sampai besar, cetakan press baru atau klasik, kami terima dengan harga kompetitif." },
-                ].map((faq, idx) => (
-                  <div key={faq.q} className="p-4">
+                <div className="grid grid-cols-3 gap-2.5 text-center">
+                  {[
+                    { v: "50+", l: "Transaksi COD" },
+                    { v: "999,9", l: "Kemurnian" },
+                    { v: "Jabodetabek", l: "Area COD" },
+                  ].map((s) => (
+                    <div key={s.l} className="surface p-3.5">
+                      <p className={`font-extrabold text-ico ${s.v.length > 7 ? "text-[15px] leading-[1.6]" : "text-xl"}`}>{s.v}</p>
+                      <p className="mt-1 text-[10px] font-bold text-soft">{s.l}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div id="info-bung" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Tentang Bung</h2>
+                  <p className="mb-3 text-xs font-semibold text-soft">Penjual yang kamu temui langsung</p>
+                  <div className="surface p-4">
+                    <p className="text-[13px] font-semibold leading-relaxed text-soft2">
+                      Halo, saya Gilang, di balik Emas BUNG. Saya melayani COD Antam di Jabodetabek dan berbagi edukasi investasi emas di YouTube, supaya kamu mulai dengan paham, bukan ikut-ikutan.
+                    </p>
                     <button
-                      onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                      className="flex w-full items-center justify-between gap-3 text-left"
+                      onClick={() => window.open(YOUTUBE_URL, "_blank", "noopener,noreferrer")}
+                      className="btn mt-3 inline-flex items-center gap-2 rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold text-limeink active:scale-95"
                     >
-                      <span className="text-sm font-extrabold">{faq.q}</span>
-                      <ChevronDown
-                        size={18}
-                        strokeWidth={3}
-                        className={`shrink-0 text-ico transition-transform duration-300 ${openFaq === idx ? "rotate-180" : ""}`}
-                      />
+                      <CirclePlay size={16} strokeWidth={2.5} /> Tonton edukasinya
                     </button>
-                    <div
-                      className={`overflow-hidden transition-all duration-300 ${
-                        openFaq === idx ? "mt-2 max-h-40 opacity-100" : "max-h-0 opacity-0"
-                      }`}
-                    >
-                      <p className="text-xs font-semibold leading-relaxed text-soft">{faq.a}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {infoTab === "panduan" && (
+              <div key="panduan" className="animate-fade space-y-5">
+                <div id="info-cara" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Cara Order</h2>
+                  <p className="mb-3 text-xs font-semibold text-soft">Empat langkah, aman dan transparan</p>
+                  <div className="surface p-4">
+                    <div className="space-y-2.5">
+                      {[
+                        { title: "Pilih Pecahan", desc: "Atur jumlah Antam ready stock di Home, atau hitung dulu di tab Buyback." },
+                        { title: "Checkout via WhatsApp", desc: "Tekan Checkout, detail pesanan terkirim otomatis ke WhatsApp Bung." },
+                        { title: "Atur Jadwal COD", desc: "Ketemu di stasiun KRL Jabodetabek, area publik ramai, atau diantar langsung." },
+                        { title: "Cek Fisik & Bayar", desc: "Cek segel & sertifikat Antam bareng, bayar transfer BCA a.n. Gilang Segara Bening atau tunai." },
+                      ].map((item, idx) => (
+                        <div key={item.title} className="flex items-start gap-3 rounded-2xl bg-pbg p-3">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime text-xs font-extrabold text-limeink">{idx + 1}</span>
+                          <div>
+                            <h4 className="text-sm font-extrabold">{item.title}</h4>
+                            <p className="mt-0.5 text-xs font-semibold leading-snug text-soft">{item.desc}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                </div>
+
+                <div id="info-asli" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Cek Keaslian Antam</h2>
+                  <p className="mb-3 text-xs font-semibold text-soft">Pertama kali beli? Ini yang perlu kamu periksa</p>
+                  <div className="space-y-2.5">
+                    {[
+                      { title: "Lihat kemasannya", desc: "Segel CertiEye harus utuh, tidak ada bekas dibuka atau direkatkan ulang." },
+                      { title: "Scan QR di sertifikat", desc: "Pakai aplikasi CertiEye (gratis di Play Store dan App Store). Kalau asli, muncul logo ANTAM LM dan tulisan AUTHENTICATED." },
+                      { title: "Cocokkan datanya", desc: "Nomor seri, berat, dan kemurnian di sertifikat harus sama dengan yang tercetak di batangan." },
+                      { title: "Curiga? Jangan bayar dulu", desc: "Hasil scan tidak sesuai atau data beda berarti berhenti dulu. Ini hakmu sebagai pembeli." },
+                    ].map((item, idx) => (
+                      <div key={item.title} className="surface flex items-start gap-3 p-3">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime text-xs font-extrabold text-limeink">{idx + 1}</span>
+                        <div>
+                          <h4 className="text-[13px] font-extrabold">{item.title}</h4>
+                          <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-soft">{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10.5px] leading-snug text-soft">Kami scan bareng kamu saat COD, jadi tidak perlu khawatir kalau belum pernah.</p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {infoTab === "syariah" && (
+              <div key="syariah" className="animate-fade space-y-5">
+                <div id="info-syariah" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Jual Beli Sesuai Syariah</h2>
+                  <p className="mb-3 text-xs font-semibold text-soft">Komitmen kami ke setiap pembeli</p>
+                  <div className="rounded-[18px] border-[1.5px] border-selbd bg-sel p-4">
+                    <span className="rounded-full bg-lime px-2.5 py-1 text-[10.5px] font-extrabold text-limeink">Dalil singkat</span>
+                    <p dir="rtl" lang="ar" className="mt-3 text-xl leading-[1.8]">الذَّهَبُ بِالذَّهَبِ ... يَدًا بِيَدٍ</p>
+                    <p className="mt-1 text-[13px] font-bold leading-relaxed">
+                      &ldquo;Emas dengan emas ... sama beratnya, sepadan, dan tunai. Jika jenisnya berbeda, juallah sesukamu asal tunai.&rdquo;
+                    </p>
+                    <p className="mt-1 text-[10.5px] font-bold text-soft">HR Muslim no. 1587, dari Ubadah bin Shamit (diringkas)</p>
+                    <ul className="mt-3 space-y-2">
+                      {[
+                        "Transaksi tunai: bayar dan terima emas di tempat",
+                        "Harga disepakati sebelum bayar, tidak berubah setelahnya",
+                        "Cek segel dan sertifikat bareng, bebas batal sebelum bayar",
+                        "Kondisi barang disampaikan jujur",
+                      ].map((t) => (
+                        <li key={t} className="flex gap-2 text-xs font-bold leading-snug">
+                          <CheckCircle2 size={16} strokeWidth={2.6} className="mt-px shrink-0 text-ico" aria-hidden="true" />
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="mt-2 text-[10.5px] leading-snug text-soft">Ini penjelasan praktik kami, bukan fatwa. Untuk pertanyaan fikih, silakan tanya ustadz yang kamu percaya.</p>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </div>
@@ -1423,6 +1440,9 @@ export default function AdvancedEmasBungPWA() {
                 <span className="text-sm font-extrabold">Total</span>
                 <span className="text-2xl font-extrabold tracking-tight text-ico">{pr(cartTotal)}</span>
               </div>
+              <p className="-mt-2 mb-4 flex items-center gap-1 text-[11px] text-soft">
+                <Info size={12} aria-hidden="true" /> Total ini perkiraan, ya. Kamu cek emasnya dulu, baru bayar sesuai harga yang disepakati saat COD.
+              </p>
               <button onClick={handleCheckoutWA} disabled={cart.length === 0} className="btn btn-wa w-full py-4 text-sm">
                 <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
               </button>
