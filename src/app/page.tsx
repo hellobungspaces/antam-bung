@@ -107,6 +107,21 @@ const INFO_TABS = [
 ] as const;
 type InfoTab = (typeof INFO_TABS)[number]["id"];
 
+// Foto COD: file /images/cod/N.jpg sesuai urutan di sini
+const COD_GALLERY = [
+  "Palmerah",
+  "Klender",
+  "Pd. Bambu",
+  "Pulo Gadung",
+  "Stasiun Klender",
+  "Rawamangun",
+  "Klender",
+  "Tanah Koja",
+  "Pd. Gede",
+  "Duren Sawit",
+  "Klender",
+].map((loc, i) => ({ id: i + 1, img: `/images/cod/${i + 1}.jpg`, gram: "Foto COD", loc }));
+
 const THEME_KEY = "emasbung-theme";
 const THEME_COLORS = { light: "#faf7ef", dark: "#07130f" };
 
@@ -205,9 +220,7 @@ export default function AdvancedEmasBungPWA() {
     { gram: 100, stock: 0, discount: 150000 },
   ]);
 
-  const [gallery, setGallery] = useState([
-    { id: 1, img: "/images/cod2.jpg", gram: "Kolase COD", loc: "Jabodetabek" },
-  ]);
+  const [gallery, setGallery] = useState(COD_GALLERY);
 
   const [newGram, setNewGram] = useState("");
   const [newStock, setNewStock] = useState("");
@@ -290,8 +303,10 @@ export default function AdvancedEmasBungPWA() {
         if (parsed.basePrice) setBasePrice(parsed.basePrice);
         if (parsed.buybackPrice) setBuybackPrice(parsed.buybackPrice);
         if (parsed.inventory) setInventory(parsed.inventory);
-        // Data lama di browser masih menunjuk ke cod2.png (sudah diganti jadi .jpg)
-        if (parsed.gallery) setGallery(parsed.gallery.map((g: { img: string }) => (g.img === "/images/cod2.png" ? { ...g, img: "/images/cod2.jpg" } : g)));
+        // Galeri bawaan (lama maupun baru) selalu diambil dari kode; hanya galeri yang diubah sendiri lewat admin yang dipertahankan
+        const savedGallery: { img: string }[] | undefined = parsed.gallery;
+        const isShippedGallery = savedGallery?.every((g) => /^\/images\/cod(\/|2)/.test(g.img));
+        if (savedGallery && !isShippedGallery) setGallery(parsed.gallery);
         if (parsed.orders) setOrders(parsed.orders);
         if (parsed.history?.length) setHistory(parsed.history);
         setCurrentDate(parsed.currentDate || defaultFormattedDate);
@@ -1197,28 +1212,6 @@ export default function AdvancedEmasBungPWA() {
 
             {infoTab === "kenalan" && (
               <div key="kenalan" className="animate-fade space-y-5">
-                {/* Galeri COD paling atas */}
-                <div id="info-galeri" className="scroll-mt-4">
-                  <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi{gallery.length > 1 ? ", geser untuk lihat lainnya" : ""}</p>
-                  <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1" role="group" aria-label="Galeri COD, geser ke samping">
-                    {gallery.map((pic) => (
-                      <div key={pic.id} className={`surface shrink-0 snap-start overflow-hidden ${gallery.length > 1 ? "w-[86%]" : "w-full"}`}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={pic.img} loading="lazy" alt="Kolase COD Emas BUNG" className="block h-auto w-full bg-surf object-contain" />
-                        <div className="flex items-center justify-between p-4">
-                          <span className="flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-xs font-extrabold text-limeink">
-                            <BadgeCheck size={14} strokeWidth={2.75} /> Terverifikasi
-                          </span>
-                          <p className="flex items-center gap-1 truncate text-xs font-bold text-soft">
-                            <MapPin size={14} /> {pic.loc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Kenapa beli di Bung, di bawah galeri */}
                 <div id="info-kenapa" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
@@ -1240,22 +1233,23 @@ export default function AdvancedEmasBungPWA() {
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-[10.5px] leading-snug text-soft">
-                    Emas BUNG bukan bagian dari PT Aneka Tambang Tbk.
-                  </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2.5 text-center">
-                  {[
-                    { v: "50+", l: "Transaksi COD" },
-                    { v: "999,9", l: "Kemurnian" },
-                    { v: "Jabodetabek", l: "Area COD" },
-                  ].map((s) => (
-                    <div key={s.l} className="surface p-3.5">
-                      <p className={`font-extrabold text-ico ${s.v.length > 7 ? "text-[15px] leading-[1.6]" : "text-xl"}`}>{s.v}</p>
-                      <p className="mt-1 text-[10px] font-bold text-soft">{s.l}</p>
-                    </div>
-                  ))}
+                {/* Galeri COD, di bawah alasan beli */}
+                <div id="info-galeri" className="scroll-mt-4">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
+                  <p className="mb-3 text-xs font-semibold text-soft">Bukti transaksi terverifikasi{gallery.length > 1 ? ", geser untuk lihat semua" : ""}</p>
+                  <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1" role="group" aria-label="Galeri COD, geser ke samping">
+                    {gallery.map((pic) => (
+                      <div key={pic.id} className={`surface shrink-0 snap-start overflow-hidden ${gallery.length > 1 ? "w-44" : "w-full"}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={pic.img} loading="lazy" decoding="async" alt="Foto COD Emas BUNG bersama pembeli" className="block aspect-[3/4] w-full bg-surf object-cover" />
+                        <p className="flex items-center gap-1 truncate px-3 py-2 text-xs font-bold text-soft">
+                          <MapPin size={13} aria-hidden="true" /> {pic.loc}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div id="info-bung" className="scroll-mt-4">
@@ -1275,6 +1269,8 @@ export default function AdvancedEmasBungPWA() {
                     </a>
                   </div>
                 </div>
+
+                <p className="text-center text-[10.5px] leading-snug text-soft">Emas BUNG bukan bagian dari PT Aneka Tambang Tbk.</p>
               </div>
             )}
 
