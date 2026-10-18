@@ -1188,7 +1188,7 @@ export default function AdvancedEmasBungPWA() {
                   role="tab"
                   aria-selected={infoTab === t.id}
                   onClick={() => setInfoTab(t.id)}
-                  className={`flex-1 rounded-full py-2 text-xs font-extrabold ${infoTab === t.id ? "bg-ink text-pbg" : "text-soft"}`}
+                  className={`flex-1 rounded-full py-2.5 text-xs font-extrabold ${infoTab === t.id ? "bg-ink text-pbg" : "text-soft"}`}
                 >
                   {t.label}
                 </button>
@@ -1200,10 +1200,10 @@ export default function AdvancedEmasBungPWA() {
                 {/* Galeri COD paling atas */}
                 <div id="info-galeri" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
-                  <p className="mb-4 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi</p>
-                  <div className="space-y-4">
+                  <p className="mb-3 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi{gallery.length > 1 ? ", geser untuk lihat lainnya" : ""}</p>
+                  <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1" role="group" aria-label="Galeri COD, geser ke samping">
                     {gallery.map((pic) => (
-                      <div key={pic.id} className="surface overflow-hidden">
+                      <div key={pic.id} className={`surface shrink-0 snap-start overflow-hidden ${gallery.length > 1 ? "w-[86%]" : "w-full"}`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={pic.img} loading="lazy" alt="Kolase COD Emas BUNG" className="block h-auto w-full bg-surf object-contain" />
                         <div className="flex items-center justify-between p-4">
@@ -1222,7 +1222,7 @@ export default function AdvancedEmasBungPWA() {
                 {/* Kenapa beli di Bung, di bawah galeri */}
                 <div id="info-kenapa" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Tiga alasan, tanpa janji kosong</p>
+                  <p className="mb-3 text-xs font-semibold text-soft">Tiga hal yang bisa kamu buktikan sendiri</p>
                   <div className="surface divide-y divide-surf px-4">
                     {[
                       { Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam." },
@@ -1263,14 +1263,16 @@ export default function AdvancedEmasBungPWA() {
                   <p className="mb-3 text-xs font-semibold text-soft">Penjual yang kamu temui langsung</p>
                   <div className="surface p-4">
                     <p className="text-[13px] font-semibold leading-relaxed text-soft2">
-                      Halo, saya Gilang, di balik Emas BUNG. Saya melayani COD Antam di Jabodetabek dan berbagi edukasi investasi emas di YouTube, supaya kamu mulai dengan paham, bukan ikut-ikutan.
+                      Saya Gilang, penjual Emas BUNG. Saya melayani COD Antam di Jabodetabek dan membagikan edukasi investasi emas di YouTube.
                     </p>
-                    <button
-                      onClick={() => window.open(YOUTUBE_URL, "_blank", "noopener,noreferrer")}
+                    <a
+                      href={YOUTUBE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="btn mt-3 inline-flex items-center gap-2 rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold text-limeink active:scale-95"
                     >
-                      <CirclePlay size={16} strokeWidth={2.5} /> Tonton edukasinya
-                    </button>
+                      <CirclePlay size={16} strokeWidth={2.5} aria-hidden="true" /> Buka channel YouTube
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1304,15 +1306,19 @@ export default function AdvancedEmasBungPWA() {
                 <div id="info-asli" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Cek Keaslian Antam</h2>
                   <p className="mb-3 text-xs font-semibold text-soft">Pertama kali beli? Ini yang perlu kamu periksa</p>
-                  <div className="space-y-2.5">
+                  <div className="surface divide-y divide-surf px-4">
                     {[
-                      { title: "Lihat kemasannya", desc: "Segel CertiEye harus utuh, tidak ada bekas dibuka atau direkatkan ulang." },
-                      { title: "Scan QR di sertifikat", desc: "Pakai aplikasi CertiEye (gratis di Play Store dan App Store). Kalau asli, muncul logo ANTAM LM dan tulisan AUTHENTICATED." },
-                      { title: "Cocokkan datanya", desc: "Nomor seri, berat, dan kemurnian di sertifikat harus sama dengan yang tercetak di batangan." },
-                      { title: "Curiga? Jangan bayar dulu", desc: "Hasil scan tidak sesuai atau data beda berarti berhenti dulu. Ini hakmu sebagai pembeli." },
-                    ].map((item, idx) => (
-                      <div key={item.title} className="surface flex items-start gap-3 p-3">
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime text-xs font-extrabold text-limeink">{idx + 1}</span>
+                      { title: "Lihat kemasannya", desc: "Segel CertiEye harus utuh, tidak ada bekas dibuka atau direkatkan ulang.", stop: false },
+                      { title: "Scan QR di sertifikat", desc: "Pakai aplikasi CertiEye (gratis di Play Store dan App Store). Kalau asli, muncul logo ANTAM LM dan tulisan AUTHENTICATED.", stop: false },
+                      { title: "Cocokkan datanya", desc: "Nomor seri, berat, dan kemurnian di sertifikat harus sama dengan yang tercetak di batangan.", stop: false },
+                      { title: "Ada yang tidak cocok? Jangan bayar", desc: "Berhenti dulu dan tanyakan. Kamu berhak menunda sampai semuanya jelas.", stop: true },
+                    ].map((item) => (
+                      <div key={item.title} className="flex items-start gap-3 py-3">
+                        {item.stop ? (
+                          <X size={18} strokeWidth={3} className="mt-px shrink-0 text-warn" aria-hidden="true" />
+                        ) : (
+                          <CheckCircle2 size={18} strokeWidth={2.6} className="mt-px shrink-0 text-ico" aria-hidden="true" />
+                        )}
                         <div>
                           <h4 className="text-[13px] font-extrabold">{item.title}</h4>
                           <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-soft">{item.desc}</p>
@@ -1320,7 +1326,7 @@ export default function AdvancedEmasBungPWA() {
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-[10.5px] leading-snug text-soft">Kami scan bareng kamu saat COD, jadi tidak perlu khawatir kalau belum pernah.</p>
+                  <p className="mt-2 text-[10.5px] leading-snug text-soft">Belum pernah scan? Kami temani saat COD.</p>
                 </div>
               </div>
             )}
