@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { InlineScript } from "./inline-script";
+import { Analytics } from "@vercel/analytics/next";
 import IconProvider from "./icon-provider";
 
 const manrope = Manrope({
@@ -56,6 +57,7 @@ export default function RootLayout({
       </head>
       <body className={`${manrope.variable} font-sans antialiased`}>
         <IconProvider>{children}</IconProvider>
+        <Analytics />
       </body>
     </html>
   );
