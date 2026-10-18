@@ -185,6 +185,7 @@ export default function AdvancedEmasBungPWA() {
   };
 
   const [antamSell, setAntamSell] = useState<number | null>(null);
+  const [antamBuyback, setAntamBuyback] = useState<number | null>(null);
   const [waConfirm, setWaConfirm] = useState<WaConfirm | null>(null);
   const [pulling, setPulling] = useState(false);
   const [infoTab, setInfoTab] = useState<InfoTab>("kenalan");
@@ -328,6 +329,7 @@ export default function AdvancedEmasBungPWA() {
         if (typeof st.spread === "number") setSpreadPct(st.spread);
       }
       if (d?.sell > 0) setAntamSell(d.sell);
+      setAntamBuyback(d?.antamBuyback > 0 ? d.antamBuyback : null);
       const manualOn = server ? st?.manual?.enabled === true : manual;
       setManualPrice(manualOn);
       if (manualOn) {
@@ -632,9 +634,10 @@ export default function AdvancedEmasBungPWA() {
   // yang diklaim adalah "hingga" selisih ke batas bawah rentang 1 gram. Hanya tampil kalau datanya lengkap dan hasilnya positif.
   const oneGram = inventory.find((i) => i.gram === 1);
   const bungLo1 = oneGram ? Math.round((getProductPrice(1, oneGram.discount) * (1 - spreadPct / 100)) / 1000) * 1000 : 0;
+  // Klaim di tab Info hanya tampil kalau datanya memang mendukung (angkanya tidak ditampilkan)
+  const buybackAboveAntam = !!antamBuyback && Number(buybackPrice) > antamBuyback;
   const saveSell = antamSell && oneGram && oneGram.stock > 0 ? Math.round((antamSell - bungLo1) / 1000) * 1000 : 0;
 
-  const breakingNewsText = `• UPDATE HARGA: 1G ${pr(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
   // Perubahan harga dibanding titik sebelumnya (hanya kalau sudah ada riwayat)
   // Dibanding harga terakhir yang berbeda (akhir pekan/libur harga sama dengan hari sebelumnya)
@@ -741,7 +744,7 @@ export default function AdvancedEmasBungPWA() {
                   onClick={() => changeQty(item.gram, -1)}
                   disabled={q === 0}
                   aria-label={`Kurangi Antam ${item.gram} gram`}
-                  className="grid h-8 w-8 place-items-center rounded-full bg-stp text-ico disabled:opacity-40"
+                  className="relative grid h-8 w-8 place-items-center rounded-full bg-stp text-ico before:absolute before:-inset-1.5 before:content-[''] disabled:opacity-40"
                 >
                   <Minus size={14} strokeWidth={3} />
                 </button>
@@ -749,7 +752,7 @@ export default function AdvancedEmasBungPWA() {
                 <button
                   onClick={() => changeQty(item.gram, 1)}
                   aria-label={`Tambah Antam ${item.gram} gram`}
-                  className="grid h-8 w-8 place-items-center rounded-full bg-lime text-limeink active:scale-90"
+                  className="relative grid h-8 w-8 place-items-center rounded-full bg-lime text-limeink before:absolute before:-inset-1.5 before:content-[''] active:scale-90"
                 >
                   <Plus size={14} strokeWidth={3} />
                 </button>
@@ -1024,12 +1027,6 @@ export default function AdvancedEmasBungPWA() {
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-2 px-3">{readyItems.map((item, idx) => renderCard(item, idx))}</div>
-                <div className="mx-4 mt-4 overflow-hidden whitespace-nowrap rounded-xl bg-surf py-2 text-[11px] font-bold text-soft2">
-                  <div className="animate-marquee">
-                    <span className="mx-2 tracking-wider">{breakingNewsText}</span>
-                    <span className="mx-2 tracking-wider">{breakingNewsText}</span>
-                  </div>
-                </div>
                 {soldOutItems.length > 0 && (
                   <>
                     <button
@@ -1200,7 +1197,7 @@ export default function AdvancedEmasBungPWA() {
                   role="tab"
                   aria-selected={infoTab === t.id}
                   onClick={() => setInfoTab(t.id)}
-                  className={`flex-1 rounded-full py-2.5 text-xs font-extrabold ${infoTab === t.id ? "bg-ink text-pbg" : "text-soft"}`}
+                  className={`min-h-11 flex-1 rounded-full text-xs font-extrabold ${infoTab === t.id ? "bg-ink text-pbg" : "text-soft"}`}
                 >
                   {t.label}
                 </button>
@@ -1212,15 +1209,15 @@ export default function AdvancedEmasBungPWA() {
                 {/* Kenapa beli di Bung, di bawah galeri */}
                 <div id="info-kenapa" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Tiga hal yang bisa kamu buktikan sendiri</p>
+                  <p className="mb-3 text-xs font-semibold text-soft">Yang bisa kamu buktikan sendiri</p>
                   <div className="surface divide-y divide-surf px-4">
                     {[
-                      { Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam." },
-                      { Icon: TrendingUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam." },
+                      ...(saveSell >= 1000 ? [{ Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam." }] : []),
+                      ...(buybackAboveAntam ? [{ Icon: TrendingUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam." }] : []),
                       { Icon: Zap, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
                     ].map(({ Icon, title, desc }) => (
                       <div key={title} className="flex items-start gap-3 py-3">
-                        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-lime text-limeink">
+                        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-surf text-ico">
                           <Icon size={18} strokeWidth={2.4} />
                         </span>
                         <div className="min-w-0">
@@ -1260,7 +1257,7 @@ export default function AdvancedEmasBungPWA() {
                       href={YOUTUBE_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn mt-3 inline-flex items-center gap-2 rounded-full bg-lime px-4 py-2.5 text-xs font-extrabold text-limeink active:scale-95"
+                      className="btn mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-lime px-4 text-xs font-extrabold text-limeink active:scale-95"
                     >
                       <CirclePlay size={16} strokeWidth={2.5} aria-hidden="true" /> Buka channel YouTube
                     </a>
@@ -1330,8 +1327,7 @@ export default function AdvancedEmasBungPWA() {
                   <h2 className="text-2xl font-extrabold tracking-tight">Jual Beli Sesuai Syariah</h2>
                   <p className="mb-3 text-xs font-semibold text-soft">Komitmen kami ke setiap pembeli</p>
                   <div className="rounded-[18px] border-[1.5px] border-selbd bg-sel p-4">
-                    <span className="rounded-full bg-lime px-2.5 py-1 text-[10.5px] font-extrabold text-limeink">Dalil singkat</span>
-                    <p dir="rtl" lang="ar" className="mt-3 text-xl leading-[1.8]">الذَّهَبُ بِالذَّهَبِ ... يَدًا بِيَدٍ</p>
+                    <p dir="rtl" lang="ar" className="text-xl leading-[1.8]">الذَّهَبُ بِالذَّهَبِ ... يَدًا بِيَدٍ</p>
                     <p className="mt-1 text-[13px] font-bold leading-relaxed">
                       &ldquo;Emas dengan emas ... sama beratnya, sepadan, dan tunai. Jika jenisnya berbeda, juallah sesukamu asal tunai.&rdquo;
                     </p>
