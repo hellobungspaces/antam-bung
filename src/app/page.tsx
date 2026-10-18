@@ -110,10 +110,10 @@ type InfoTab = (typeof INFO_TABS)[number]["id"];
 const COD_GALLERY = [
   "Palmerah",
   "Klender",
-  "Rawamangun",
+  "Pulo Gadung",
   "Tanah Koja",
   "Pondok Gede",
-  "Pulo Gadung",
+  "Rawamangun",
   "Klender",
 ].map((loc, i) => ({ id: i + 1, img: `/images/cod/${i + 1}.jpg`, gram: "Foto COD", loc }));
 
