@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import {
   Home,
-  Image as ImageIcon,
   HandCoins,
   Info,
   ShoppingBag,
@@ -25,6 +24,7 @@ import {
   Save,
   GraduationCap,
   CirclePlay,
+  RefreshCw,
 } from "lucide-react";
 
 type InventoryItem = { gram: number; stock: number; discount: number };
@@ -81,10 +81,22 @@ const priceRange = (n: number, sep = "–", spreadPct = DEFAULT_SPREAD_PCT) => {
 const DEFAULT_BASE = 2592000;
 const YOUTUBE_URL = "https://www.youtube.com/@emasbung";
 
+// "17 OKT 2026" -> "17 Okt"; teks tanggal manual dari admin dipakai apa adanya
+const dlabel = (d: string) => {
+  const m = d.match(/^(\d{1,2}) ([A-Z]{3}) \d{4}$/);
+  return m ? `${m[1]} ${m[2][0]}${m[2].slice(1).toLowerCase()}` : d;
+};
+
+const agoLabel = (ms: number) => {
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "Diperbarui baru saja";
+  if (m < 60) return `Diperbarui ${m} menit lalu`;
+  return `Diperbarui ${Math.floor(m / 60)} jam lalu`;
+};
+
 const TABS = [
-  { id: "beranda", label: "Beranda", Icon: Home },
+  { id: "beranda", label: "Home", Icon: Home },
   { id: "jual", label: "Jual", Icon: HandCoins },
-  { id: "galeri", label: "Galeri", Icon: ImageIcon },
   { id: "info", label: "Info", Icon: Info },
   { id: "edukasi", label: "Edukasi", Icon: GraduationCap },
 ];
@@ -92,6 +104,15 @@ const TABS = [
 export default function AdvancedEmasBungPWA() {
   const [isMounted, setIsMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const loadRef = useRef<(() => Promise<void>) | null>(null);
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pulling, setPulling] = useState(false);
+  const [range, setRange] = useState<7 | 30>(30);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(0);
+  const pullStart = useRef<number | null>(null);
 
   const [basePrice, setBasePrice] = useState(DEFAULT_BASE);
   const [buybackPrice, setBuybackPrice] = useState(2401000);
@@ -216,9 +237,10 @@ export default function AdvancedEmasBungPWA() {
     }
 
     // Pengaturan toko (server) + harga otomatis (API). Kalau salah satu gagal, data bawaan/lokal tetap dipakai.
-    const settingsReq = fetch("/api/settings").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const priceReq = fetch("/api/harga").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    Promise.all([settingsReq, priceReq]).then(([cfg, d]) => {
+    const loadData = () => {
+      const settingsReq = fetch("/api/settings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      const priceReq = fetch("/api/harga", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      return Promise.all([settingsReq, priceReq]).then(([cfg, d]) => {
       const server = cfg?.configured === true;
       setServerMode(server);
       const st = server ? cfg.settings : null;
@@ -249,11 +271,18 @@ export default function AdvancedEmasBungPWA() {
           );
         }
       }
+      if (d) setUpdatedAtMs(Date.now());
+      setNowMs(Date.now());
       setIsLoading(false);
-    });
+      });
+    };
+    loadRef.current = loadData;
+    loadData();
 
     // Batas tunggu: kalau server lambat, tampilkan halaman dengan data yang ada
     const loadTimer = setTimeout(() => setIsLoading(false), 3000);
+
+    const tick = setInterval(() => setNowMs(Date.now()), 30000);
 
     const notifTimer = setTimeout(() => {
       setShowPushNotif(true);
@@ -263,6 +292,7 @@ export default function AdvancedEmasBungPWA() {
 
     return () => {
       clearTimeout(loadTimer);
+      clearInterval(tick);
       clearTimeout(notifTimer);
     };
   }, []);
@@ -295,6 +325,33 @@ export default function AdvancedEmasBungPWA() {
 
   const triggerHaptic = () => {
     if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(15);
+  };
+
+  const PULL_MAX = 90;
+  const PULL_TRIGGER = 65;
+  const onPullStart = (e: React.TouchEvent) => {
+    if (activeTab !== "beranda" || refreshing || window.scrollY > 0) return;
+    pullStart.current = e.touches[0].clientY;
+    setPulling(true);
+  };
+  const onPullMove = (e: React.TouchEvent) => {
+    if (pullStart.current === null) return;
+    const dy = e.touches[0].clientY - pullStart.current;
+    if (dy <= 0 || window.scrollY > 0) return setPull(0);
+    setPull(Math.min(PULL_MAX, dy * 0.5));
+  };
+  const onPullEnd = async () => {
+    if (pullStart.current === null) return;
+    pullStart.current = null;
+    setPulling(false);
+    if (pull < PULL_TRIGGER) return setPull(0);
+    setRefreshing(true);
+    setPull(PULL_TRIGGER * 0.6);
+    triggerHaptic();
+    await loadRef.current?.();
+    setRefreshing(false);
+    setPull(0);
+    notify("Harga diperbarui");
   };
 
   const notify = (msg: string) => {
@@ -464,8 +521,9 @@ export default function AdvancedEmasBungPWA() {
   const breakingNewsText = `• UPDATE HARGA: 1G ${pr(getProductPrice(1, 0))} • BUYBACK ${rp(buybackPrice)} • Transaksi saat COD • REK RESMI BCA A.N. GILANG SEGARA BENING • `;
 
   // Perubahan harga dibanding titik sebelumnya (hanya kalau sudah ada riwayat)
-  const prevPoint = history.length >= 2 ? history[history.length - 2].p : null;
-  const changePct = prevPoint ? ((basePrice - prevPoint) / prevPoint) * 100 : null;
+  // Dibanding harga terakhir yang berbeda (akhir pekan/libur harga sama dengan hari sebelumnya)
+  const prevPoint = [...history].reverse().find((h) => h.p !== basePrice)?.p ?? null;
+  const changePct = history.length >= 2 && prevPoint ? ((basePrice - prevPoint) / prevPoint) * 100 : null;
 
   // Grafik dari riwayat harga yang benar-benar tersimpan
   const W = 320;
@@ -473,14 +531,23 @@ export default function AdvancedEmasBungPWA() {
   const pts = history.map((h) => h.p);
   const min = Math.min(...pts);
   const max = Math.max(...pts);
-  const coords = pts.map((p, i) => {
-    const x = pts.length === 1 ? W : (i / (pts.length - 1)) * W;
-    const y = max === min ? H / 2 : 10 + (1 - (p - min) / (max - min)) * (H - 24);
+  const chartHist = history.slice(-range);
+  const cpts = chartHist.map((h) => h.p);
+  const cmin = Math.min(...cpts);
+  const cmax = Math.max(...cpts);
+  const coords = cpts.map((p, i) => {
+    const x = cpts.length === 1 ? W : (i / (cpts.length - 1)) * W;
+    const y = cmax === cmin ? H / 2 : 10 + (1 - (p - cmin) / (cmax - cmin)) * (H - 24);
     return [x, y] as const;
   });
-  const hasChart = pts.length >= 2;
+  const hasChart = cpts.length >= 2;
+  const hi = hoverIdx !== null && hoverIdx < coords.length ? hoverIdx : null;
+  const onChartPoint = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    setHoverIdx(Math.round(f * (coords.length - 1)));
+  };
   const linePath = coords.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
-  const [lastX, lastY] = coords[coords.length - 1];
 
   // Insight harga: dihitung dari riwayat yang sama dengan grafik, hanya fakta harga (bukan saran beli/jual)
   const insight = (() => {
@@ -491,11 +558,6 @@ export default function AdvancedEmasBungPWA() {
     const where = pos < 0.25 ? "dekat batas bawah" : pos > 0.75 ? "dekat batas atas" : "di tengah rentang";
     const span = pts.length >= 25 ? "30 hari terakhir" : `${pts.length} pembaruan terakhir`;
     const jt = (n: number) => `Rp ${(n / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} jt`;
-    // "17 OKT 2026" -> "17 Okt"; teks tanggal manual dari admin dipakai apa adanya
-    const dlabel = (d: string) => {
-      const m = d.match(/^(\d{1,2}) ([A-Z]{3}) \d{4}$/);
-      return m ? `${m[1]} ${m[2][0]}${m[2].slice(1).toLowerCase()}` : d;
-    };
     return {
       headline: `Harga ${where} ${span}`,
       span,
@@ -670,7 +732,26 @@ export default function AdvancedEmasBungPWA() {
         </div>
       </div>
 
-      <div className="relative flex-1 pt-1">
+      <div
+        className="relative flex-1 pt-1"
+        onTouchStart={onPullStart}
+        onTouchMove={onPullMove}
+        onTouchEnd={onPullEnd}
+        onTouchCancel={onPullEnd}
+      >
+        {/* Indikator tarik untuk refresh */}
+        <div
+          className="pointer-events-none flex items-end justify-center overflow-hidden text-soft"
+          style={{ height: pull, transition: pulling ? "none" : "height 0.25s ease" }}
+          aria-hidden
+        >
+          <RefreshCw
+            size={18}
+            strokeWidth={2.5}
+            className={`mb-2 ${refreshing ? "animate-spin" : ""}`}
+            style={refreshing ? undefined : { transform: `rotate(${pull * 4}deg)`, opacity: Math.min(1, pull / PULL_TRIGGER) }}
+          />
+        </div>
         {/* BERANDA */}
         {activeTab === "beranda" && (
           <div className="animate-fade">
@@ -693,23 +774,72 @@ export default function AdvancedEmasBungPWA() {
                   )}
                 </div>
               )}
-              <p className="mt-0.5 text-[11px] text-soft">Buyback {isLoading ? "..." : rp(buybackPrice)}</p>
+              <p className="mt-0.5 text-[11px] text-soft">
+                Buyback {isLoading ? "..." : rp(buybackPrice)}
+                {updatedAtMs !== null && !manualPrice && <> · {agoLabel(nowMs - updatedAtMs)}</>}
+              </p>
             </div>
 
-            {/* GRAFIK dari riwayat harga yang tersimpan */}
+            {/* GRAFIK dari riwayat harga yang tersimpan: ketuk/geser untuk lihat harga per hari */}
             <div className="mt-2 px-0">
               {hasChart ? (
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block h-[84px] w-full" aria-label="Grafik harga">
-                  <defs>
-                    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stopColor="var(--line)" stopOpacity=".35" />
-                      <stop offset="1" stopColor="var(--line)" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d={`${linePath} L${W} ${H} L0 ${H}Z`} fill="url(#chartFill)" />
-                  <path d={linePath} fill="none" stroke="var(--line)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-                  <circle cx={Math.min(lastX, W - 5)} cy={lastY} r="4.5" fill="var(--line)" />
-                </svg>
+                <>
+                  <div className="mb-1 flex items-center justify-between px-4">
+                    <p className="min-h-4 text-[11px] font-bold text-soft">
+                      {hi !== null ? (
+                        <>
+                          {dlabel(chartHist[hi].d)} · <b className="text-ink">{rp(cpts[hi])}</b>
+                        </>
+                      ) : (
+                        "Ketuk grafik untuk lihat harga per hari"
+                      )}
+                    </p>
+                    <div className="flex gap-1" role="group" aria-label="Rentang grafik">
+                      {([7, 30] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => {
+                            setRange(r);
+                            setHoverIdx(null);
+                          }}
+                          aria-pressed={range === r}
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${range === r ? "bg-lime text-limeink" : "bg-surf text-soft"}`}
+                        >
+                          {r} hari
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div
+                    className="relative touch-pan-y"
+                    onPointerDown={onChartPoint}
+                    onPointerMove={(e) => e.pointerType === "mouse" ? onChartPoint(e) : e.buttons && onChartPoint(e)}
+                    onPointerLeave={() => setHoverIdx(null)}
+                  >
+                    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block h-[84px] w-full" aria-label="Grafik harga">
+                      <defs>
+                        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" stopColor="var(--line)" stopOpacity=".35" />
+                          <stop offset="1" stopColor="var(--line)" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d={`${linePath} L${W} ${H} L0 ${H}Z`} fill="url(#chartFill)" />
+                      <path d={linePath} fill="none" stroke="var(--line)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                    </svg>
+                    {(() => {
+                      const [mx, my] = coords[hi ?? coords.length - 1];
+                      return (
+                        <>
+                          {hi !== null && <span className="pointer-events-none absolute top-0 h-full w-px bg-line/40" style={{ left: `${(mx / W) * 100}%` }} />}
+                          <span
+                            className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-line ring-2 ring-pbg"
+                            style={{ left: `${Math.min((mx / W) * 100, 98)}%`, top: `${my}px` }}
+                          />
+                        </>
+                      );
+                    })()}
+                  </div>
+                </>
               ) : (
                 <div className="mx-4 flex h-[84px] items-center justify-center rounded-2xl border-2 border-dashed border-surf px-4 text-center text-[11px] font-semibold text-soft">
                   Grafik muncul setelah harga diperbarui beberapa kali.
@@ -892,34 +1022,32 @@ export default function AdvancedEmasBungPWA() {
           </section>
         )}
 
-        {/* GALERI */}
-        {activeTab === "galeri" && (
-          <section className="animate-fade px-4">
-            <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
-            <p className="mb-4 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi</p>
-            <div className="space-y-4">
-              {gallery.map((pic) => (
-                <div key={pic.id} className="surface overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={pic.img} loading="lazy" alt="Kolase COD Emas BUNG" className="block h-auto w-full bg-surf object-contain" />
-                  <div className="flex items-center justify-between p-4">
-                    <span className="flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-xs font-extrabold text-limeink">
-                      <BadgeCheck size={14} strokeWidth={2.75} /> Terverifikasi
-                    </span>
-                    <p className="flex items-center gap-1 truncate text-xs font-bold text-soft">
-                      <MapPin size={14} /> {pic.loc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* INFO */}
         {activeTab === "info" && (
           <section className="animate-fade space-y-5 px-4">
-            <h2 className="text-2xl font-extrabold tracking-tight">Info</h2>
+            {/* Galeri COD paling atas */}
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
+              <p className="mb-4 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi</p>
+              <div className="space-y-4">
+                {gallery.map((pic) => (
+                  <div key={pic.id} className="surface overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={pic.img} loading="lazy" alt="Kolase COD Emas BUNG" className="block h-auto w-full bg-surf object-contain" />
+                    <div className="flex items-center justify-between p-4">
+                      <span className="flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-xs font-extrabold text-limeink">
+                        <BadgeCheck size={14} strokeWidth={2.75} /> Terverifikasi
+                      </span>
+                      <p className="flex items-center gap-1 truncate text-xs font-bold text-soft">
+                        <MapPin size={14} /> {pic.loc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <h2 className="pt-2 text-2xl font-extrabold tracking-tight">Info</h2>
 
             <div className="grid grid-cols-3 gap-2.5 text-center">
               {[
@@ -947,7 +1075,7 @@ export default function AdvancedEmasBungPWA() {
 
               <div className="space-y-2.5">
                 {[
-                  { title: "Pilih Pecahan", desc: "Atur jumlah Antam ready stock di Beranda, atau hitung dulu di tab Jual." },
+                  { title: "Pilih Pecahan", desc: "Atur jumlah Antam ready stock di Home, atau hitung dulu di tab Jual." },
                   { title: "Checkout via WhatsApp", desc: "Tekan Checkout, detail pesanan terkirim otomatis ke WhatsApp Bung." },
                   { title: "Atur Jadwal COD", desc: "Ketemu di stasiun KRL Jabodetabek, area publik ramai, atau diantar langsung." },
                   { title: "Cek Fisik & Bayar", desc: "Cek segel & sertifikat Antam bareng, bayar transfer BCA a.n. Gilang Segara Bening atau tunai." },
@@ -1092,6 +1220,22 @@ export default function AdvancedEmasBungPWA() {
 
       {/* DOCK BAWAH: ringkasan Keranjang + navigasi dalam satu blok */}
       <div className="phone pointer-events-none fixed bottom-0 left-1/2 z-40 -translate-x-1/2 pt-2">
+        {activeTab === "beranda" && !showCart && (
+          <div className="pointer-events-auto flex justify-end px-3 pb-2">
+            <button
+              onClick={() =>
+                window.open(
+                  `https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`,
+                  "_blank"
+                )
+              }
+              aria-label="Chat WhatsApp"
+              className="btn btn-lime rounded-full px-4 py-2.5 text-[13px] shadow-[0_10px_30px_-8px_rgb(0_0_0/40%)]"
+            >
+              <MessageCircle size={16} strokeWidth={2.75} /> Chat WA
+            </button>
+          </div>
+        )}
         {totalCartItemsCount > 0 && !showCart && (
           <div className="pointer-events-auto px-3 pb-2">
             <button
@@ -1325,7 +1469,7 @@ export default function AdvancedEmasBungPWA() {
                   <h3 className="mb-2 text-sm font-extrabold">Tanggal update manual</h3>
                   <input id="adm-date" type="text" aria-label="Tanggal update" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="input" placeholder="Contoh: 14 OKT 2026" />
                   <p className="mt-2 text-xs font-semibold leading-snug text-soft">
-                    Ubah kalau mau menampilkan tanggal update versi sendiri di halaman depan. Setiap kali harga jual berubah dan disimpan, titiknya masuk ke grafik di Beranda.
+                    Ubah kalau mau menampilkan tanggal update versi sendiri di halaman depan. Setiap kali harga jual berubah dan disimpan, titiknya masuk ke grafik di Home.
                   </p>
                 </div>
               </div>
