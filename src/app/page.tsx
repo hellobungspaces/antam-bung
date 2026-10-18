@@ -565,7 +565,12 @@ export default function AdvancedEmasBungPWA() {
         return;
       }
     } else {
-      ok = pin === SECRET_PIN; // mode lokal: server belum diaktifkan
+      // Mode lokal (server belum aktif) hanya untuk pengembangan; di produksi PIN bawaan tidak boleh membuka admin
+      if (process.env.NODE_ENV === "production") {
+        notify("Admin belum aktif di server");
+        return;
+      }
+      ok = pin === SECRET_PIN;
     }
     if (ok) {
       setShowAdminPin(false);
@@ -1666,13 +1671,13 @@ export default function AdvancedEmasBungPWA() {
                     </span>
                     <input type="checkbox" role="switch" checked={manualPrice} onChange={(e) => setManualPrice(e.target.checked)} className="h-6 w-11 shrink-0 accent-[var(--line)]" />
                   </label>
-                  <div className={manualPrice ? "" : "opacity-50"}>
+                  <div>
                     <label htmlFor="adm-base" className="text-xs font-extrabold text-ico">Harga jual 1 gram</label>
-                    <input id="adm-base" type="number" disabled={!manualPrice} value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} className="input mt-1 text-lg" />
+                    <input id="adm-base" type="number" disabled={!manualPrice} value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} className={`input mt-1 text-lg ${manualPrice ? "" : "opacity-50"}`} />
                   </div>
-                  <div className={manualPrice ? "" : "opacity-50"}>
+                  <div>
                     <label htmlFor="adm-bb" className="text-xs font-extrabold text-ico">Harga buyback 1 gram</label>
-                    <input id="adm-bb" type="number" disabled={!manualPrice} value={buybackPrice} onChange={(e) => setBuybackPrice(Number(e.target.value))} className="input mt-1 text-lg" />
+                    <input id="adm-bb" type="number" disabled={!manualPrice} value={buybackPrice} onChange={(e) => setBuybackPrice(Number(e.target.value))} className={`input mt-1 text-lg ${manualPrice ? "" : "opacity-50"}`} />
                   </div>
                 </div>
                 <div className="surface p-5">
