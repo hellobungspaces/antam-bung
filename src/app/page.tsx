@@ -817,7 +817,7 @@ export default function AdvancedEmasBungPWA() {
                     <p className="min-h-4 text-[11px] font-semibold text-soft">
                       {hi !== null ? (
                         <>
-                          {dlabel(chartHist[hi].d)} · <b className="font-extrabold text-ink">{rp(cpts[hi])}</b>
+                          {dlabel(chartHist[hi].d)} · <b className="font-semibold">{rp(cpts[hi])}</b>
                         </>
                       ) : (
                         "Ketuk grafik untuk lihat harga"
@@ -832,7 +832,7 @@ export default function AdvancedEmasBungPWA() {
                             setHoverIdx(null);
                           }}
                           aria-pressed={range === r}
-                          className={`border-b-2 pb-0.5 text-[11px] font-extrabold ${range === r ? "border-ink text-ink" : "border-transparent text-soft"}`}
+                          className={`text-[11px] font-semibold text-soft ${range === r ? "underline decoration-2 underline-offset-4" : ""}`}
                         >
                           {r}H
                         </button>
