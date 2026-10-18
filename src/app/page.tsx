@@ -756,7 +756,7 @@ export default function AdvancedEmasBungPWA() {
         {activeTab === "beranda" && (
           <div className="animate-fade">
             <div className="px-4">
-              <p className="text-[11px] font-bold text-soft">Harga acuan Antam 1 gram · {currentDate}</p>
+              <p className="text-[11px] font-bold text-soft">Antam 1 gram · {currentDate}</p>
               {isLoading ? (
                 <div className="skeleton mt-1 h-10 w-64 rounded-xl" />
               ) : (
@@ -784,32 +784,6 @@ export default function AdvancedEmasBungPWA() {
             <div className="mt-2 px-0">
               {hasChart ? (
                 <>
-                  <div className="mb-1 flex items-center justify-between px-4">
-                    <p className="min-h-4 text-[11px] font-bold text-soft">
-                      {hi !== null ? (
-                        <>
-                          {dlabel(chartHist[hi].d)} · <b className="text-ink">{rp(cpts[hi])}</b>
-                        </>
-                      ) : (
-                        "Ketuk grafik untuk lihat harga per hari"
-                      )}
-                    </p>
-                    <div className="flex gap-1" role="group" aria-label="Rentang grafik">
-                      {([7, 30] as const).map((r) => (
-                        <button
-                          key={r}
-                          onClick={() => {
-                            setRange(r);
-                            setHoverIdx(null);
-                          }}
-                          aria-pressed={range === r}
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${range === r ? "bg-lime text-limeink" : "bg-surf text-soft"}`}
-                        >
-                          {r} hari
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                   <div
                     className="relative touch-pan-y"
                     onPointerDown={onChartPoint}
@@ -830,14 +804,40 @@ export default function AdvancedEmasBungPWA() {
                       const [mx, my] = coords[hi ?? coords.length - 1];
                       return (
                         <>
-                          {hi !== null && <span className="pointer-events-none absolute top-0 h-full w-px bg-line/40" style={{ left: `${(mx / W) * 100}%` }} />}
+                          {hi !== null && <span className="pointer-events-none absolute top-0 h-full w-px opacity-40" style={{ background: "var(--line)", left: `${(mx / W) * 100}%` }} />}
                           <span
-                            className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-line ring-2 ring-pbg"
-                            style={{ left: `${Math.min((mx / W) * 100, 98)}%`, top: `${my}px` }}
+                            className="pointer-events-none absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-[3px] ring-pbg"
+                            style={{ background: "var(--line)", left: `${Math.min((mx / W) * 100, 98)}%`, top: `${my}px` }}
                           />
                         </>
                       );
                     })()}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between px-4">
+                    <p className="min-h-4 text-[11px] font-semibold text-soft">
+                      {hi !== null ? (
+                        <>
+                          {dlabel(chartHist[hi].d)} · <b className="font-extrabold text-ink">{rp(cpts[hi])}</b>
+                        </>
+                      ) : (
+                        "Ketuk grafik untuk lihat harga"
+                      )}
+                    </p>
+                    <div className="flex gap-4" role="group" aria-label="Rentang grafik">
+                      {([7, 30] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => {
+                            setRange(r);
+                            setHoverIdx(null);
+                          }}
+                          aria-pressed={range === r}
+                          className={`border-b-2 pb-0.5 text-[11px] font-extrabold ${range === r ? "border-ink text-ink" : "border-transparent text-soft"}`}
+                        >
+                          {r}H
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </>
               ) : (
@@ -854,7 +854,7 @@ export default function AdvancedEmasBungPWA() {
                   onClick={() => setShowInsight(!showInsight)}
                   aria-expanded={showInsight}
                   aria-controls="insight-detail"
-                  className="mx-4 mt-2.5 flex w-[calc(100%-2rem)] items-center gap-2 rounded-[14px] bg-surf px-3.5 py-3 text-left text-[12.5px] font-extrabold"
+                  className="mx-4 mt-2.5 flex w-[calc(100%-2rem)] items-center gap-2 rounded-[14px] bg-surf px-3.5 py-3 text-left text-xs font-semibold text-soft2"
                 >
                   <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10.5px] text-limeink">Insight</span>
                   <span className="min-w-0 flex-1">{insight.headline}</span>
@@ -873,7 +873,6 @@ export default function AdvancedEmasBungPWA() {
                       <li className="flex justify-between gap-3"><span>Tertinggi</span><b className="font-extrabold text-ink">{insight.high}</b></li>
                       <li className="flex justify-between gap-3"><span>Rata-rata</span><b className="font-extrabold text-ink">{insight.avg}</b></li>
                     </ul>
-                    <p className="mt-2.5 text-[10px] text-soft">Informasi harga, bukan saran investasi.</p>
                   </div>
                 )}
               </>
