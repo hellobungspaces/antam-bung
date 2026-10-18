@@ -1220,22 +1220,6 @@ export default function AdvancedEmasBungPWA() {
 
       {/* DOCK BAWAH: ringkasan Keranjang + navigasi dalam satu blok */}
       <div className="phone pointer-events-none fixed bottom-0 left-1/2 z-40 -translate-x-1/2 pt-2">
-        {activeTab === "beranda" && !showCart && (
-          <div className="pointer-events-auto flex justify-end px-3 pb-2">
-            <button
-              onClick={() =>
-                window.open(
-                  `https://wa.me/${WA_NUMBER}?text=Halo%20Bung,%20mau%20tanya%20ketersediaan%20Antam%20&%20jadwal%20COD.`,
-                  "_blank"
-                )
-              }
-              aria-label="Chat WhatsApp"
-              className="btn btn-lime rounded-full px-4 py-2.5 text-[13px] shadow-[0_10px_30px_-8px_rgb(0_0_0/40%)]"
-            >
-              <MessageCircle size={16} strokeWidth={2.75} /> Chat WA
-            </button>
-          </div>
-        )}
         {totalCartItemsCount > 0 && !showCart && (
           <div className="pointer-events-auto px-3 pb-2">
             <button
