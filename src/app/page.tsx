@@ -18,7 +18,6 @@ import {
   ChevronDown,
   Lightbulb,
   Lock,
-  Rocket,
   Settings2,
   CheckCircle2,
   Save,
@@ -94,9 +93,15 @@ const agoLabel = (ms: number) => {
   return `Diperbarui ${Math.floor(m / 60)} jam lalu`;
 };
 
+const INFO_SECTIONS = [
+  { id: "info-galeri", label: "Galeri" },
+  { id: "info-cara", label: "Cara order" },
+  { id: "info-faq", label: "Tanya jawab" },
+];
+
 const TABS = [
   { id: "beranda", label: "Home", Icon: Home },
-  { id: "jual", label: "Jual", Icon: HandCoins },
+  { id: "jual", label: "Buyback", Icon: HandCoins },
   { id: "info", label: "Info", Icon: Info },
   { id: "edukasi", label: "Edukasi", Icon: GraduationCap },
 ];
@@ -108,6 +113,7 @@ export default function AdvancedEmasBungPWA() {
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [pulling, setPulling] = useState(false);
+  const [infoSection, setInfoSection] = useState("info-galeri");
   const [range, setRange] = useState<7 | 30>(30);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(null);
@@ -179,6 +185,21 @@ export default function AdvancedEmasBungPWA() {
   const SECRET_PIN = "0000";
   const WA_NUMBER = "628176767166";
   const pr = (n: number, sep?: string) => priceRange(n, sep, spreadPct);
+
+  // Chip Info mengikuti bagian yang sedang terlihat
+  useEffect(() => {
+    if (activeTab !== "info") return;
+    const els = INFO_SECTIONS.map((x) => document.getElementById(x.id)).filter((e): e is HTMLElement => !!e);
+    const io = new IntersectionObserver(
+      (entries) => {
+        const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (top) setInfoSection(top.target.id);
+      },
+      { rootMargin: "0px 0px -60% 0px" },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [activeTab]);
 
   // Esc menutup foto yang diperbesar / konfirmasi keluar
   useEffect(() => {
@@ -299,6 +320,7 @@ export default function AdvancedEmasBungPWA() {
 
   const safeBuybackPrice = Number(buybackPrice) || 2401000;
   const bbGramNum = parseFloat(bbGram) || 0;
+  const fmtGram = (n: number) => String(Number(n.toFixed(2)));
   let calculatedBbEstimate = safeBuybackPrice * bbGramNum;
   if (bbEdition === "retro") calculatedBbEstimate -= bbGramNum * 10000;
   if (bbCondition === "baret") calculatedBbEstimate -= bbGramNum * 15000;
@@ -555,11 +577,11 @@ export default function AdvancedEmasBungPWA() {
     const now = pts[pts.length - 1];
     const change = (from: number) => ((now - from) / from) * 100;
     const pos = max === min ? 0.5 : (now - min) / (max - min);
-    const where = pos < 0.25 ? "dekat batas bawah" : pos > 0.75 ? "dekat batas atas" : "di tengah rentang";
+    const where = pos < 0.25 ? "Dekat harga terendah" : pos > 0.75 ? "Dekat harga tertinggi" : "Di tengah rentang";
     const span = pts.length >= 25 ? "30 hari terakhir" : `${pts.length} pembaruan terakhir`;
     const jt = (n: number) => `Rp ${(n / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} jt`;
     return {
-      headline: `Harga ${where} ${span}`,
+      headline: `${where} ${pts.length >= 25 ? "30 hari" : `${pts.length} pembaruan`}`,
       span,
       rows: [
         { label: "Dibanding kemarin", pct: change(pts[pts.length - 2]) },
@@ -610,7 +632,14 @@ export default function AdvancedEmasBungPWA() {
         <div className="flex flex-1 flex-col gap-0.5 px-2.5 pb-2.5 pt-2">
           <p className={`text-[13px] font-extrabold ${ready ? "" : "opacity-55"}`}>Antam {item.gram} gr</p>
           {ready && <p className="text-[11.5px] font-bold text-ico">{pr(getProductPrice(item.gram, item.discount))}</p>}
-          <p className={`text-[10.5px] text-soft ${ready ? "" : "opacity-70"}`}>{ready ? `sisa ${item.stock}` : "Stok kosong"}</p>
+          {ready && item.stock <= 2 ? (
+            <p className="flex items-center gap-1.5 text-[10.5px] font-extrabold text-warn">
+              <span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden="true" />
+              Sisa {item.stock}
+            </p>
+          ) : (
+            <p className={`text-[10.5px] text-soft ${ready ? "" : "opacity-70"}`}>{ready ? `sisa ${item.stock}` : "Stok kosong"}</p>
+          )}
           <div className="mt-2 flex justify-center">
             {ready ? (
               <div className="flex w-full items-center justify-between text-[13px] font-extrabold">
@@ -781,7 +810,7 @@ export default function AdvancedEmasBungPWA() {
             </div>
 
             {/* GRAFIK dari riwayat harga yang tersimpan: ketuk/geser untuk lihat harga per hari */}
-            <div className="mt-2 px-0">
+            <div className="mt-2 px-4">
               {hasChart ? (
                 <>
                   <div
@@ -813,7 +842,7 @@ export default function AdvancedEmasBungPWA() {
                       );
                     })()}
                   </div>
-                  <div className="mt-1.5 flex items-center justify-between px-4">
+                  <div className="mt-1.5 flex items-center justify-between">
                     <p className="min-h-4 text-[11px] font-semibold text-soft">
                       {hi !== null ? (
                         <>
@@ -841,7 +870,7 @@ export default function AdvancedEmasBungPWA() {
                   </div>
                 </>
               ) : (
-                <div className="mx-4 flex h-[84px] items-center justify-center rounded-2xl border-2 border-dashed border-surf px-4 text-center text-[11px] font-semibold text-soft">
+                <div className="flex h-[84px] items-center justify-center rounded-2xl border-2 border-dashed border-surf px-4 text-center text-[11px] font-semibold text-soft">
                   Grafik muncul setelah harga diperbarui beberapa kali.
                 </div>
               )}
@@ -926,25 +955,60 @@ export default function AdvancedEmasBungPWA() {
         {/* JUAL / BUYBACK */}
         {activeTab === "jual" && (
           <section className="animate-fade px-4">
-            <h2 className="text-2xl font-extrabold tracking-tight">Jual Emas</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight">Buyback Emas</h2>
             <p className="mb-4 text-xs font-semibold text-soft">
-              Hitung estimasi pencairan emas Antam kamu secara langsung.
+              Hitung estimasi pencairan emas Antam kamu.
             </p>
 
             <div className="space-y-5">
               <div>
-                <label htmlFor="bb-gram" className="mb-2 block text-xs font-extrabold text-ico">1. Pecahan (gram)</label>
-                <input
-                  id="bb-gram"
-                  type="number"
-                  inputMode="decimal"
-                  min="0.1"
-                  step="any"
-                  value={bbGram}
-                  onChange={(e) => setBbGram(e.target.value)}
-                  className="input py-3 text-center text-3xl font-extrabold"
-                  placeholder="0"
-                />
+                <label htmlFor="bb-gram" className="mb-2 block text-xs font-extrabold text-ico">1. Berat emas</label>
+                <div className="flex items-center gap-2 rounded-[18px] bg-surf p-1.5">
+                  <button
+                    type="button"
+                    aria-label="Kurangi satu gram"
+                    onClick={() => { triggerHaptic(); setBbGram(fmtGram(Math.max(0.5, bbGramNum - 1))); }}
+                    className="grid h-11 w-11 place-items-center rounded-[14px] bg-pbg text-ink active:scale-95"
+                  >
+                    <Minus size={18} strokeWidth={3} />
+                  </button>
+                  <div className="flex flex-1 items-baseline justify-center gap-1.5">
+                    <input
+                      id="bb-gram"
+                      type="number"
+                      inputMode="decimal"
+                      min="0.1"
+                      step="any"
+                      value={bbGram}
+                      onChange={(e) => setBbGram(e.target.value)}
+                      className="w-16 bg-transparent text-center outline-none"
+                      style={{ fontSize: 24, fontWeight: 800 }}
+                      placeholder="0"
+                    />
+                    <span className="text-[13px] font-bold text-soft">gram</span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Tambah satu gram"
+                    onClick={() => { triggerHaptic(); setBbGram(fmtGram(bbGramNum + 1)); }}
+                    className="grid h-11 w-11 place-items-center rounded-[14px] bg-lime text-limeink active:scale-95"
+                  >
+                    <Plus size={18} strokeWidth={3} />
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[1, 2, 5, 10, 25].map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => { triggerHaptic(); setBbGram(String(g)); }}
+                      aria-pressed={bbGramNum === g}
+                      className={`rounded-full px-3.5 py-1.5 ${bbGramNum === g ? "bg-sel text-ink outline outline-2 -outline-offset-2 outline-selbd" : "bg-surf text-soft2"}`}
+                    >
+                      <span className="text-xs font-extrabold">{g}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -1004,19 +1068,20 @@ export default function AdvancedEmasBungPWA() {
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-lime p-5 text-limeink">
-                <p className="mb-1 flex items-center gap-1.5 text-xs font-bold opacity-75">
-                  <Wallet size={14} strokeWidth={2.5} /> Estimasi yang kamu terima
-                </p>
-                <p className="text-4xl font-extrabold tracking-tight">{rp(displayEstimate)}</p>
-                <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold opacity-70">
-                  <Info size={12} /> Harga final dicek saat COD.
-                </p>
+              <div className="surface rounded-3xl p-2">
+                <div className="px-3 pb-3.5 pt-3">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-soft">
+                    <Wallet size={14} strokeWidth={2.5} /> Estimasi yang kamu terima
+                  </p>
+                  <p className="text-4xl font-extrabold tracking-tight">{rp(displayEstimate)}</p>
+                  <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-soft">
+                    <Info size={12} /> Harga final dicek saat COD.
+                  </p>
+                </div>
+                <button onClick={handleBuybackWA} className="btn btn-wa w-full py-4 text-sm">
+                  <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
+                </button>
               </div>
-
-              <button onClick={handleBuybackWA} className="btn btn-wa w-full py-4 text-sm">
-                <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
-              </button>
             </div>
           </section>
         )}
@@ -1024,8 +1089,26 @@ export default function AdvancedEmasBungPWA() {
         {/* INFO */}
         {activeTab === "info" && (
           <section className="animate-fade space-y-5 px-4">
+            {/* Navigasi cepat ke bagian di tab ini */}
+            <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5" role="group" aria-label="Bagian Info">
+              {INFO_SECTIONS.map((sec) => (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => {
+                    setInfoSection(sec.id);
+                    document.getElementById(sec.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  aria-pressed={infoSection === sec.id}
+                  className={`shrink-0 rounded-full px-3 py-1.5 ${infoSection === sec.id ? "bg-ink text-pbg" : "bg-surf text-soft"}`}
+                >
+                  <span className="text-xs font-bold">{sec.label}</span>
+                </button>
+              ))}
+            </div>
+
             {/* Galeri COD paling atas */}
-            <div>
+            <div id="info-galeri" className="scroll-mt-4">
               <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
               <p className="mb-4 text-xs font-semibold text-soft">Bukti transaksi yang sudah terverifikasi</p>
               <div className="space-y-4">
@@ -1046,7 +1129,6 @@ export default function AdvancedEmasBungPWA() {
               </div>
             </div>
 
-            <h2 className="pt-2 text-2xl font-extrabold tracking-tight">Info</h2>
 
             <div className="grid grid-cols-3 gap-2.5 text-center">
               {[
@@ -1061,20 +1143,13 @@ export default function AdvancedEmasBungPWA() {
               ))}
             </div>
 
-            <div className="surface p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-lime text-limeink">
-                  <Rocket size={20} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold">Cara Order & Transaksi</h3>
-                  <p className="text-xs font-semibold text-soft">Aman, transparan, dan fleksibel</p>
-                </div>
-              </div>
-
+            <div id="info-cara" className="scroll-mt-4">
+              <h2 className="text-2xl font-extrabold tracking-tight">Cara Order</h2>
+              <p className="mb-3 text-xs font-semibold text-soft">Empat langkah, aman dan transparan</p>
+              <div className="surface p-4">
               <div className="space-y-2.5">
                 {[
-                  { title: "Pilih Pecahan", desc: "Atur jumlah Antam ready stock di Home, atau hitung dulu di tab Jual." },
+                  { title: "Pilih Pecahan", desc: "Atur jumlah Antam ready stock di Home, atau hitung dulu di tab Buyback." },
                   { title: "Checkout via WhatsApp", desc: "Tekan Checkout, detail pesanan terkirim otomatis ke WhatsApp Bung." },
                   { title: "Atur Jadwal COD", desc: "Ketemu di stasiun KRL Jabodetabek, area publik ramai, atau diantar langsung." },
                   { title: "Cek Fisik & Bayar", desc: "Cek segel & sertifikat Antam bareng, bayar transfer BCA a.n. Gilang Segara Bening atau tunai." },
@@ -1090,10 +1165,11 @@ export default function AdvancedEmasBungPWA() {
                   </div>
                 ))}
               </div>
+              </div>
             </div>
 
-            <div>
-              <h3 className="mb-2 px-1 text-xs font-extrabold text-ico">Pertanyaan Umum</h3>
+            <div id="info-faq" className="scroll-mt-4">
+              <h2 className="mb-3 text-2xl font-extrabold tracking-tight">Tanya Jawab</h2>
               <div className="surface divide-y divide-surf overflow-hidden">
                 {[
                   { q: "Emasnya asli gak?", a: "Antam Logam Mulia resmi, segel CertiEye utuh. Kamu bisa scan dan cek sertifikat bareng sebelum transaksi." },

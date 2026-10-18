@@ -19,6 +19,7 @@
   --stp: #f1ebdb;
   --zero: #b3a98f;
   --danger: #b3261e;
+  --warn: #b45309;
   --up: #1f6b3a;
   --wa: #1fb855;
   --cardbd: #ece3cc;
@@ -48,6 +49,7 @@
     --stp: #1a3327;
     --zero: #5d7d6e;
     --danger: #ff6b78;
+    --warn: #ffb454;
     --up: #c6f432;
     --cardbd: transparent;
     --limebd: transparent;
@@ -74,6 +76,7 @@
   --color-stp: var(--stp);
   --color-zero: var(--zero);
   --color-danger: var(--danger);
+  --color-warn: var(--warn);
   --color-up: var(--up);
   --color-wa: var(--wa);
 }
