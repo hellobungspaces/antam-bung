@@ -114,7 +114,6 @@ const COD_GALLERY = [
   "Tanah Koja",
   "Pondok Gede",
   "Rawamangun",
-  "Klender",
 ].map((loc, i) => ({ id: i + 1, img: `/images/cod/${i + 1}.jpg`, gram: "Foto COD", loc }));
 
 const THEME_KEY = "emasbung-theme";
