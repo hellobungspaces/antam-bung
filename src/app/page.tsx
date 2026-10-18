@@ -664,29 +664,41 @@ export default function AdvancedEmasBungPWA() {
   };
   const linePath = coords.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
 
-  // Insight harga: dihitung dari riwayat yang sama dengan grafik, hanya fakta harga (bukan saran beli/jual)
+  const fmtPct = (x: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+  // Insight harga: dihitung dari rentang yang sama dengan grafik (7H/30H), hanya fakta harga (bukan saran beli/jual)
   const insight = (() => {
-    if (pts.length < 2) return null;
-    const now = pts[pts.length - 1];
+    const n = cpts.length;
+    if (n < 3) return null;
+    const now = cpts[n - 1];
     const change = (from: number) => ((now - from) / from) * 100;
-    const pos = max === min ? 0.5 : (now - min) / (max - min);
-    const where = pos < 0.25 ? "Dekat harga terendah" : pos > 0.75 ? "Dekat harga tertinggi" : "Di tengah rentang";
-    const span = pts.length >= 25 ? "30 hari terakhir" : `${pts.length} pembaruan terakhir`;
-    const jt = (n: number) => `Rp ${(n / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} jt`;
+    const pos = cmax === cmin ? 0.5 : (now - cmin) / (cmax - cmin);
+    const span = `${n} hari`;
+    const sinceStart = change(cpts[0]);
+    const jt = (v: number) => `Rp ${(v / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} jt`;
+    const at = (v: number) => {
+      const d = chartHist[cpts.lastIndexOf(v)]?.d;
+      return `${jt(v)}${d ? ` · ${dlabel(d)}` : ""}`;
+    };
+    let headline: string;
+    if (cmax === cmin) headline = `Harga stabil ${span} terakhir`;
+    else if (now === cmin) headline = `Harga terendah dalam ${span}`;
+    else if (now === cmax) headline = `Harga tertinggi dalam ${span}`;
+    else if (pos < 0.25) headline = `Dekat harga terendah ${span}`;
+    else if (pos > 0.75) headline = `Dekat harga tertinggi ${span}`;
+    else headline = `${sinceStart >= 0 ? "Naik" : "Turun"} ${fmtPct(Math.abs(sinceStart)).replace(/^\+/, "")} dalam ${span}`;
     return {
-      headline: `${where} ${pts.length >= 25 ? "30 hari" : `${pts.length} pembaruan`}`,
-      span,
+      headline,
       rows: [
-        { label: "Dibanding kemarin", pct: change(pts[pts.length - 2]) },
-        ...(pts.length >= 8 ? [{ label: "Dibanding 7 hari lalu", pct: change(pts[pts.length - 8]) }] : []),
-        ...(pts.length >= 25 ? [{ label: "Dibanding 30 hari lalu", pct: change(pts[0]) }] : []),
+        { label: "Dibanding kemarin", pct: change(cpts[n - 2]) },
+        ...(n >= 8 ? [{ label: "Dibanding 7 hari lalu", pct: change(cpts[n - 8]) }] : []),
+        ...(n >= 25 ? [{ label: `Dibanding ${n} hari lalu`, pct: sinceStart }] : []),
       ],
-      low: `${jt(min)}${history[pts.lastIndexOf(min)]?.d ? ` · ${dlabel(history[pts.lastIndexOf(min)].d)}` : ""}`,
-      high: `${jt(max)}${history[pts.lastIndexOf(max)]?.d ? ` · ${dlabel(history[pts.lastIndexOf(max)].d)}` : ""}`,
-      avg: jt(Math.round(pts.reduce((a, b) => a + b, 0) / pts.length / 1000) * 1000),
+      low: at(cmin),
+      high: at(cmax),
+      avg: jt(Math.round(cpts.reduce((x, y) => x + y, 0) / n / 1000) * 1000),
     };
   })();
-  const fmtPct = (x: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
   // Kartu gramasi (grid 2 kolom): foto besar, harga range, stepper
   const renderCard = (item: InventoryItem, idx: number) => {
@@ -916,7 +928,7 @@ export default function AdvancedEmasBungPWA() {
                     })()}
                   </div>
                   <div className="mt-1.5 flex items-center justify-between">
-                    <p className="min-h-4 text-[11px] font-semibold text-soft">
+                    <p className="min-h-4 text-xs font-semibold text-soft">
                       {hi !== null ? (
                         <>
                           {dlabel(chartHist[hi].d)} · <b className="font-semibold">{rp(cpts[hi])}</b>
@@ -934,7 +946,7 @@ export default function AdvancedEmasBungPWA() {
                             setHoverIdx(null);
                           }}
                           aria-pressed={range === r}
-                          className={`text-[11px] font-semibold text-soft ${range === r ? "underline decoration-2 underline-offset-4" : ""}`}
+                          className={`font-sans text-xs font-semibold ${range === r ? "text-soft2" : "text-soft"} ${range === r ? "underline decoration-2 underline-offset-4" : ""}`}
                         >
                           {r}H
                         </button>
@@ -956,11 +968,11 @@ export default function AdvancedEmasBungPWA() {
                   onClick={() => setShowInsight(!showInsight)}
                   aria-expanded={showInsight}
                   aria-controls="insight-detail"
-                  className="mx-4 mt-2.5 flex w-[calc(100%-2rem)] items-center gap-2 rounded-[14px] bg-surf px-3.5 py-3 text-left text-xs font-semibold text-soft2"
+                  className="mx-4 mt-2.5 flex w-[calc(100%-2rem)] items-center gap-2 rounded-[14px] bg-surf px-3.5 py-3 text-left font-sans text-xs font-semibold text-soft"
                 >
-                  <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10.5px] text-limeink">Insight</span>
-                  <span className="min-w-0 flex-1">{insight.headline}</span>
-                  <CaretDown size={17} className={`shrink-0 transition-transform motion-reduce:transition-none ${showInsight ? "rotate-180" : ""}`} aria-hidden="true" />
+                  <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[11px] font-bold text-limeink">Insight</span>
+                  <span className="min-w-0 flex-1 text-xs font-semibold text-soft">{insight.headline}</span>
+                  <CaretDown size={16} className={`shrink-0 transition-transform motion-reduce:transition-none ${showInsight ? "rotate-180" : ""}`} aria-hidden="true" />
                 </button>
                 {showInsight && (
                   <div id="insight-detail" className="surface animate-fade mx-4 mt-1.5 rounded-[14px] px-3.5 pb-3.5 pt-2">
