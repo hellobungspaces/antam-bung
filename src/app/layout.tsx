@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { InlineScript } from "./inline-script";
+import IconProvider from "./icon-provider";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -54,7 +55,7 @@ export default function RootLayout({
         <InlineScript html={`(function(){try{var t=localStorage.getItem("emasbung-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})()`} />
       </head>
       <body className={`${manrope.variable} font-sans antialiased`}>
-        {children}
+        <IconProvider>{children}</IconProvider>
       </body>
     </html>
   );

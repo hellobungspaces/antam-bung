@@ -2,35 +2,34 @@
 import { useState, useEffect, useLayoutEffect, useRef, useSyncExternalStore, Fragment } from "react";
 import { flushSync } from "react-dom";
 import {
-  Home,
-  HandCoins,
-  Info,
-  ShoppingBag,
-  MessageCircle,
-  Plus,
-  Minus,
-  Trash2,
-  X,
-  ShieldCheck,
-  MapPin,
-  BadgeCheck,
   ArrowRight,
-  Wallet,
-  ChevronDown,
-  Lightbulb,
-  Lock,
-  Settings2,
-  CheckCircle2,
-  Save,
+  ArrowsClockwise,
+  CaretDown,
+  ChatCircleDots,
+  CheckCircle,
+  FloppyDisk,
   GraduationCap,
-  CirclePlay,
-  Sun,
+  HandCoins,
+  House,
+  Info,
+  Lock,
+  MapPin,
+  Minus,
+  Money,
   Moon,
+  PlayCircle,
+  Plus,
+  SealCheck,
+  ShieldCheck,
+  ShoppingBag,
+  SlidersHorizontal,
+  Sun,
   Tag,
-  TrendingUp,
-  Zap,
-  RefreshCw,
-} from "lucide-react";
+  Trash,
+  TrendUp,
+  Wallet,
+  X,
+} from "@phosphor-icons/react";
 
 type WaConfirm = { title: string; lead: string; rows: [string, string][]; note: string; url: string; onOpen?: () => void };
 type InventoryItem = { gram: number; stock: number; discount: number };
@@ -142,7 +141,7 @@ const applyThemeColor = (t: "light" | "dark") =>
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", THEME_COLORS[t]));
 
 const TABS = [
-  { id: "beranda", label: "Home", Icon: Home },
+  { id: "beranda", label: "Home", Icon: House },
   { id: "jual", label: "Buyback", Icon: HandCoins },
   { id: "info", label: "Info", Icon: Info },
   { id: "edukasi", label: "Edukasi", Icon: GraduationCap },
@@ -229,7 +228,6 @@ export default function AdvancedEmasBungPWA() {
 
   const [activeTab, setActiveTab] = useState("beranda");
   const [showCart, setShowCart] = useState(false);
-  const [showPushNotif, setShowPushNotif] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [zoomGram, setZoomGram] = useState<number | null>(null);
   const [showInsight, setShowInsight] = useState(false);
@@ -366,16 +364,9 @@ export default function AdvancedEmasBungPWA() {
 
     const tick = setInterval(() => setNowMs(Date.now()), 30000);
 
-    const notifTimer = setTimeout(() => {
-      setShowPushNotif(true);
-      if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(15);
-      setTimeout(() => setShowPushNotif(false), 6000);
-    }, 3500);
-
     return () => {
       clearTimeout(loadTimer);
       clearInterval(tick);
-      clearTimeout(notifTimer);
     };
   }, []);
 
@@ -728,7 +719,7 @@ export default function AdvancedEmasBungPWA() {
         </button>
         <div className="flex flex-1 flex-col gap-0.5 px-2.5 pb-2.5 pt-2">
           <p className={`text-[13px] font-extrabold ${ready ? "" : "opacity-55"}`}>Antam {item.gram} gr</p>
-          {ready && <p className="text-[11.5px] font-bold text-ico">{pr(getProductPrice(item.gram, item.discount))}</p>}
+          {ready && <p className="text-[11.5px] font-extrabold">{pr(getProductPrice(item.gram, item.discount))}</p>}
           {ready && item.stock <= 2 ? (
             <p className="flex items-center gap-1.5 text-[10.5px] font-extrabold text-warn">
               <span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden="true" />
@@ -746,15 +737,15 @@ export default function AdvancedEmasBungPWA() {
                   aria-label={`Kurangi Antam ${item.gram} gram`}
                   className="relative grid h-8 w-8 place-items-center rounded-full bg-stp text-ico before:absolute before:-inset-1.5 before:content-[''] disabled:opacity-40"
                 >
-                  <Minus size={14} strokeWidth={3} />
+                  <Minus size={14} />
                 </button>
-                <span className={`w-4 text-center ${q === 0 ? "text-zero" : ""}`}>{q}</span>
+                <span className={`w-4 text-center ${q === 0 ? "text-soft" : ""}`}>{q}</span>
                 <button
                   onClick={() => changeQty(item.gram, 1)}
                   aria-label={`Tambah Antam ${item.gram} gram`}
                   className="relative grid h-8 w-8 place-items-center rounded-full bg-lime text-limeink before:absolute before:-inset-1.5 before:content-[''] active:scale-90"
                 >
-                  <Plus size={14} strokeWidth={3} />
+                  <Plus size={14} />
                 </button>
               </div>
             ) : (
@@ -764,7 +755,7 @@ export default function AdvancedEmasBungPWA() {
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-1.5 rounded-full bg-lime px-3 py-2 text-[11.5px] font-extrabold text-limeink active:scale-95"
               >
-                <MessageCircle size={13} strokeWidth={2.75} aria-hidden="true" /> Tanya stok
+                <ChatCircleDots size={13} aria-hidden="true" /> Tanya stok
               </a>
             )}
           </div>
@@ -778,32 +769,6 @@ export default function AdvancedEmasBungPWA() {
 
   return (
     <main className="phone relative mx-auto flex min-h-screen flex-col overflow-x-hidden bg-pbg pb-44 text-ink shadow-[0_0_60px_-10px_rgb(0_0_0/35%)]">
-      {/* PUSH NOTIF */}
-      <div
-        className={`phone fixed left-1/2 top-3 z-50 -translate-x-1/2 px-4 transition-all duration-500 ease-out ${
-          showPushNotif ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-32 opacity-0"
-        }`}
-      >
-        <div className="flex items-start gap-3 rounded-2xl bg-row p-3.5 shadow-[0_12px_30px_-8px_rgb(0_0_0/45%)] ring-1 ring-selbd/60">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-lime text-limeink">
-            <Lightbulb size={18} strokeWidth={2.5} />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-xs font-extrabold text-ico">Info Singkat</h4>
-            <p className="mt-0.5 text-xs font-semibold leading-snug text-soft2">
-              Cek panduan lengkap cara order di tab Info ya!
-            </p>
-          </div>
-          <button
-            onClick={() => setShowPushNotif(false)}
-            aria-label="Tutup"
-            className="grid h-6 w-6 place-items-center rounded-full bg-surf text-soft"
-          >
-            <X size={14} strokeWidth={3} />
-          </button>
-        </div>
-      </div>
-
       {/* TOAST */}
       <div
         className={`phone pointer-events-none fixed bottom-44 left-1/2 z-[60] -translate-x-1/2 px-4 transition-all duration-300 ease-out ${
@@ -811,7 +776,7 @@ export default function AdvancedEmasBungPWA() {
         }`}
       >
         <div className="mx-auto flex w-fit max-w-full items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-pbg shadow-[0_12px_30px_-6px_rgb(0_0_0/45%)]">
-          <CheckCircle2 size={16} strokeWidth={2.75} className="shrink-0" />
+          <CheckCircle size={16} className="shrink-0" />
           <p className="text-xs font-bold">{toastMessage}</p>
         </div>
       </div>
@@ -823,7 +788,7 @@ export default function AdvancedEmasBungPWA() {
           className="flex cursor-pointer select-none items-center gap-2 text-[15px] font-extrabold"
         >
           <span className="grid h-6 w-6 place-items-center rounded-lg bg-lime text-limeink">
-            <ShieldCheck size={14} strokeWidth={2.75} />
+            <ShieldCheck size={14} />
           </span>
           Emas BUNG
         </h1>
@@ -833,21 +798,21 @@ export default function AdvancedEmasBungPWA() {
             aria-label={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
             className="btn btn-soft h-[34px] w-[34px] rounded-full"
           >
-            {isDark ? <Sun size={16} strokeWidth={2.5} /> : <Moon size={16} strokeWidth={2.5} />}
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button
             onClick={handleChatWA}
             aria-label="Chat WhatsApp"
             className="btn btn-soft h-[34px] w-[34px] rounded-full"
           >
-            <MessageCircle size={16} strokeWidth={2.5} />
+            <ChatCircleDots size={16} />
           </button>
           <button
             onClick={() => setShowCart(true)}
             aria-label="Buka Keranjang"
             className="btn btn-soft relative h-[34px] w-[34px] rounded-full"
           >
-            <ShoppingBag size={16} strokeWidth={2.5} />
+            <ShoppingBag size={16} />
             {totalCartItemsCount > 0 && (
               <span
                 key={totalCartItemsCount}
@@ -873,9 +838,8 @@ export default function AdvancedEmasBungPWA() {
           style={{ height: pull, transition: pulling ? "none" : "height 0.25s ease" }}
           aria-hidden
         >
-          <RefreshCw
+          <ArrowsClockwise
             size={18}
-            strokeWidth={2.5}
             className={`mb-2 ${refreshing ? "animate-spin" : ""}`}
             style={refreshing ? undefined : { transform: `rotate(${pull * 4}deg)`, opacity: Math.min(1, pull / PULL_TRIGGER) }}
           />
@@ -908,7 +872,7 @@ export default function AdvancedEmasBungPWA() {
               </p>
               {!isLoading && saveSell >= 1000 && (
                 <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-up/15 px-3 py-1 text-xs font-extrabold text-up">
-                  <BadgeCheck size={13} strokeWidth={3} /> Hemat hingga {rp(saveSell)} dari harga Antam
+                  <SealCheck size={13} /> Hemat hingga {rp(saveSell)} dari harga Antam
                 </p>
               )}
             </div>
@@ -991,7 +955,7 @@ export default function AdvancedEmasBungPWA() {
                 >
                   <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-[10.5px] text-limeink">Insight</span>
                   <span className="min-w-0 flex-1">{insight.headline}</span>
-                  <ChevronDown size={17} strokeWidth={2.6} className={`shrink-0 transition-transform motion-reduce:transition-none ${showInsight ? "rotate-180" : ""}`} aria-hidden="true" />
+                  <CaretDown size={17} className={`shrink-0 transition-transform motion-reduce:transition-none ${showInsight ? "rotate-180" : ""}`} aria-hidden="true" />
                 </button>
                 {showInsight && (
                   <div id="insight-detail" className="surface animate-fade mx-4 mt-1.5 rounded-[14px] px-3.5 pb-3.5 pt-2">
@@ -1036,7 +1000,7 @@ export default function AdvancedEmasBungPWA() {
                       className="mx-3 mt-4 flex w-[calc(100%-1.5rem)] items-center justify-between rounded-2xl border-[1.5px] border-dashed border-zero bg-transparent px-3.5 py-3 text-[12.5px] font-extrabold text-soft2"
                     >
                       <span>Stok habis ({soldOutItems.length})</span>
-                      <ChevronDown size={18} strokeWidth={2.6} className={`transition-transform motion-reduce:transition-none ${showSoldOut ? "rotate-180" : ""}`} aria-hidden="true" />
+                      <CaretDown size={18} className={`transition-transform motion-reduce:transition-none ${showSoldOut ? "rotate-180" : ""}`} aria-hidden="true" />
                     </button>
                     {showSoldOut && (
                       <div id="stok-habis" className="mt-2 grid grid-cols-2 gap-2 px-3">
@@ -1069,7 +1033,7 @@ export default function AdvancedEmasBungPWA() {
                     onClick={() => { triggerHaptic(); setBbGram(fmtGram(Math.max(0.5, bbGramNum - 1))); }}
                     className="grid h-11 w-11 place-items-center rounded-[14px] bg-pbg text-ink active:scale-95"
                   >
-                    <Minus size={18} strokeWidth={3} />
+                    <Minus size={18} />
                   </button>
                   <div className="flex flex-1 items-baseline justify-center gap-1.5">
                     <input
@@ -1092,7 +1056,7 @@ export default function AdvancedEmasBungPWA() {
                     onClick={() => { triggerHaptic(); setBbGram(fmtGram(bbGramNum + 1)); }}
                     className="grid h-11 w-11 place-items-center rounded-[14px] bg-lime text-limeink active:scale-95"
                   >
-                    <Plus size={18} strokeWidth={3} />
+                    <Plus size={18} />
                   </button>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1170,7 +1134,7 @@ export default function AdvancedEmasBungPWA() {
               <div className="surface rounded-3xl p-2">
                 <div className="px-3 pb-3.5 pt-3">
                   <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-soft">
-                    <Wallet size={14} strokeWidth={2.5} /> Estimasi yang kamu terima
+                    <Wallet size={14} /> Estimasi yang kamu terima
                   </p>
                   <p className="text-4xl font-extrabold tracking-tight">{rp(displayEstimate)}</p>
                   <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-soft">
@@ -1178,7 +1142,7 @@ export default function AdvancedEmasBungPWA() {
                   </p>
                 </div>
                 <button onClick={handleBuybackWA} className="btn btn-wa w-full py-4 text-sm">
-                  <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
+                  <ChatCircleDots size={18} /> Lanjut via WhatsApp
                 </button>
               </div>
             </div>
@@ -1213,12 +1177,12 @@ export default function AdvancedEmasBungPWA() {
                   <div className="surface divide-y divide-surf px-4">
                     {[
                       ...(saveSell >= 1000 ? [{ Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam." }] : []),
-                      ...(buybackAboveAntam ? [{ Icon: TrendingUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam." }] : []),
-                      { Icon: Zap, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
+                      ...(buybackAboveAntam ? [{ Icon: TrendUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam." }] : []),
+                      { Icon: Money, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
                     ].map(({ Icon, title, desc }) => (
                       <div key={title} className="flex items-start gap-3 py-3">
                         <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-surf text-ico">
-                          <Icon size={18} strokeWidth={2.4} />
+                          <Icon size={18} />
                         </span>
                         <div className="min-w-0">
                           <h3 className="text-[13px] font-extrabold">{title}</h3>
@@ -1259,7 +1223,7 @@ export default function AdvancedEmasBungPWA() {
                       rel="noopener noreferrer"
                       className="btn mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-lime px-4 text-xs font-extrabold text-limeink active:scale-95"
                     >
-                      <CirclePlay size={16} strokeWidth={2.5} aria-hidden="true" /> Buka channel YouTube
+                      <PlayCircle size={16} aria-hidden="true" /> Buka channel YouTube
                     </a>
                   </div>
                 </div>
@@ -1272,7 +1236,7 @@ export default function AdvancedEmasBungPWA() {
               <div key="panduan" className="animate-fade space-y-5">
                 <div id="info-cara" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Cara Order</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Empat langkah, aman dan transparan</p>
+                  <p className="mb-3 text-xs font-semibold text-soft">Empat langkah dari pilih sampai bayar</p>
                   <div className="surface p-4">
                     <div className="space-y-2.5">
                       {[
@@ -1305,9 +1269,9 @@ export default function AdvancedEmasBungPWA() {
                     ].map((item) => (
                       <div key={item.title} className="flex items-start gap-3 py-3">
                         {item.stop ? (
-                          <X size={18} strokeWidth={3} className="mt-px shrink-0 text-warn" aria-hidden="true" />
+                          <X size={18} className="mt-px shrink-0 text-warn" aria-hidden="true" />
                         ) : (
-                          <CheckCircle2 size={18} strokeWidth={2.6} className="mt-px shrink-0 text-ico" aria-hidden="true" />
+                          <CheckCircle size={18} className="mt-px shrink-0 text-ico" aria-hidden="true" />
                         )}
                         <div>
                           <h4 className="text-[13px] font-extrabold">{item.title}</h4>
@@ -1340,7 +1304,7 @@ export default function AdvancedEmasBungPWA() {
                         "Kondisi barang disampaikan jujur",
                       ].map((t) => (
                         <li key={t} className="flex gap-2 text-xs font-bold leading-snug">
-                          <CheckCircle2 size={16} strokeWidth={2.6} className="mt-px shrink-0 text-ico" aria-hidden="true" />
+                          <CheckCircle size={16} className="mt-px shrink-0 text-ico" aria-hidden="true" />
                           {t}
                         </li>
                       ))}
@@ -1370,7 +1334,7 @@ export default function AdvancedEmasBungPWA() {
                 </span>
               </h2>
               <button onClick={() => setShowCart(false)} aria-label="Tutup Keranjang" className="btn btn-soft h-9 w-9 rounded-full">
-                <X size={18} strokeWidth={3} />
+                <X size={18} />
               </button>
             </div>
 
@@ -1378,7 +1342,7 @@ export default function AdvancedEmasBungPWA() {
               {cart.length === 0 ? (
                 <div className="mt-16 space-y-3 text-center">
                   <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-surf">
-                    <ShoppingBag size={36} className="text-ico" strokeWidth={2} />
+                    <ShoppingBag size={36} className="text-ico" />
                   </div>
                   <p className="text-base font-extrabold">Keranjang masih kosong</p>
                   <p className="text-xs font-semibold text-soft">Yuk pilih pecahan emas ready stock dulu!</p>
@@ -1407,18 +1371,18 @@ export default function AdvancedEmasBungPWA() {
                     </div>
                     <div className="flex items-center gap-1.5 text-[13px] font-extrabold">
                       <button onClick={() => changeQty(c.gram, -1)} aria-label="Kurangi" className="grid h-7 w-7 place-items-center rounded-full bg-stp text-ico active:scale-90">
-                        <Minus size={14} strokeWidth={3} />
+                        <Minus size={14} />
                       </button>
                       <span className="w-4 text-center">{c.qty}</span>
                       <button onClick={() => changeQty(c.gram, 1)} aria-label="Tambah" className="grid h-7 w-7 place-items-center rounded-full bg-lime text-limeink active:scale-90">
-                        <Plus size={14} strokeWidth={3} />
+                        <Plus size={14} />
                       </button>
                       <button
                         onClick={() => handleRemoveCartItem(c.gram)}
                         aria-label="Hapus"
                         className="ml-1 grid h-8 w-8 place-items-center rounded-full bg-danger/10 text-danger"
                       >
-                        <Trash2 size={15} strokeWidth={2.5} />
+                        <Trash size={15} />
                       </button>
                     </div>
                   </div>
@@ -1439,7 +1403,7 @@ export default function AdvancedEmasBungPWA() {
                 <Info size={12} aria-hidden="true" /> Total ini perkiraan, ya. Kamu cek emasnya dulu, baru bayar sesuai harga yang disepakati saat COD.
               </p>
               <button onClick={handleCheckoutWA} disabled={cart.length === 0} className="btn btn-wa w-full py-4 text-sm">
-                <MessageCircle size={18} strokeWidth={2.5} /> Lanjut via WhatsApp
+                <ChatCircleDots size={18} /> Lanjut via WhatsApp
               </button>
             </div>
           </div>
@@ -1456,7 +1420,7 @@ export default function AdvancedEmasBungPWA() {
               className="animate-fade-up flex w-full items-center gap-3 rounded-2xl bg-row p-2 pl-2.5 text-left shadow-[0_10px_30px_-8px_rgb(0_0_0/40%)] ring-1 ring-selbd/50 active:scale-[0.99]"
             >
               <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surf text-ico">
-                <ShoppingBag size={20} strokeWidth={2.5} />
+                <ShoppingBag size={20} />
                 <span
                   key={totalCartItemsCount}
                   className="animate-pop absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-lime px-1 text-[11px] font-extrabold text-limeink ring-2 ring-row"
@@ -1471,7 +1435,7 @@ export default function AdvancedEmasBungPWA() {
                 <span className="block truncate text-base font-extrabold tracking-tight">{pr(cartTotal)}</span>
               </span>
               <span className="btn btn-lime shrink-0 rounded-xl px-4 py-3 text-[13px]">
-                Checkout <ArrowRight size={15} strokeWidth={3} />
+                Checkout <ArrowRight size={15} />
               </span>
             </button>
           </div>
@@ -1498,7 +1462,7 @@ export default function AdvancedEmasBungPWA() {
               className={`flex flex-1 flex-col items-center py-1 ${active ? "text-ico" : "text-soft"}`}
             >
               <span className={`grid h-7 w-12 place-items-center rounded-full transition-colors ${active ? "bg-surf" : ""}`}>
-                <Icon size={20} strokeWidth={active ? 2.75 : 2.25} />
+                <Icon size={20} weight={active ? "fill" : "bold"} />
               </span>
               <span
                 className={`overflow-hidden text-[10.5px] font-bold transition-all duration-300 motion-reduce:transition-none ${
@@ -1529,7 +1493,7 @@ export default function AdvancedEmasBungPWA() {
               aria-label="Tutup"
               className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white"
             >
-              <X size={18} strokeWidth={2.75} />
+              <X size={18} />
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/images/antam/${zoomGram}.jpg`} alt={`Antam ${zoomGram} gram, tampak depan dan belakang`} className="block h-auto w-full" />
@@ -1550,7 +1514,7 @@ export default function AdvancedEmasBungPWA() {
         >
           <div onClick={(e) => e.stopPropagation()} className="w-full rounded-3xl bg-pbg p-6 text-center">
             <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-lime text-limeink">
-              <CirclePlay size={22} strokeWidth={2.5} />
+              <PlayCircle size={22} />
             </div>
             <h3 id="leave-title" className="text-xl font-extrabold">Keluar dari Emas BUNG?</h3>
             <p className="mb-5 mt-2 text-sm font-semibold leading-snug text-soft">
@@ -1588,7 +1552,7 @@ export default function AdvancedEmasBungPWA() {
             <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-soft/40" aria-hidden="true" />
             <div className="flex items-center gap-3">
               <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-xl bg-wa text-white">
-                <MessageCircle size={20} strokeWidth={2.4} />
+                <ChatCircleDots size={20} />
               </span>
               <h3 id="wa-title" className="text-[17px] font-extrabold leading-tight">{waConfirm.title}</h3>
             </div>
@@ -1629,7 +1593,7 @@ export default function AdvancedEmasBungPWA() {
         <div className="phone animate-fade fixed left-1/2 top-0 z-[70] flex h-full -translate-x-1/2 items-center justify-center bg-black/80 p-5 backdrop-blur-md">
           <div className="w-full rounded-3xl bg-pbg p-6">
             <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-lime text-limeink">
-              <Lock size={22} strokeWidth={2.5} />
+              <Lock size={22} />
             </div>
             <h3 className="mb-4 text-center text-xl font-extrabold">Akses Admin</h3>
             <input
@@ -1660,7 +1624,7 @@ export default function AdvancedEmasBungPWA() {
           <div className="pb-20">
             <div className="mb-4 flex items-center justify-between pt-2">
               <h2 className="flex items-center gap-2 text-2xl font-extrabold">
-                <Settings2 size={22} className="text-ico" strokeWidth={2.5} /> Panel Admin
+                <SlidersHorizontal size={22} className="text-ico" /> Panel Admin
               </h2>
               <button onClick={() => setShowAdminPanel(false)} className="btn btn-soft px-4 py-2 text-xs">
                 Tutup
@@ -1778,7 +1742,7 @@ export default function AdvancedEmasBungPWA() {
                           aria-label="Hapus pecahan"
                           className="mt-4 grid h-8 w-8 place-items-center rounded-full bg-danger/10 text-danger"
                         >
-                          <Trash2 size={14} strokeWidth={2.5} />
+                          <Trash size={14} />
                         </button>
                       </div>
                     </div>
@@ -1803,7 +1767,7 @@ export default function AdvancedEmasBungPWA() {
                     }}
                     className="btn btn-lime w-full py-3 text-sm"
                   >
-                    <Plus size={16} strokeWidth={3} /> Tambah Produk
+                    <Plus size={16} /> Tambah Produk
                   </button>
                 </div>
               </div>
@@ -1855,7 +1819,7 @@ export default function AdvancedEmasBungPWA() {
             )}
 
             <button onClick={handleAdminSave} className="btn btn-lime mt-6 w-full py-4 text-sm">
-              <Save size={16} strokeWidth={3} /> Simpan Perubahan
+              <FloppyDisk size={16} /> Simpan Perubahan
             </button>
           </div>
         </div>
