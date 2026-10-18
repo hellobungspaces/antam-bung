@@ -111,15 +111,12 @@ type InfoTab = (typeof INFO_TABS)[number]["id"];
 const COD_GALLERY = [
   "Palmerah",
   "Klender",
-  "Pd. Bambu",
-  "Pulo Gadung",
-  "Stasiun Klender",
   "Rawamangun",
-  "Klender",
   "Tanah Koja",
-  "Pd. Gede",
-  "Duren Sawit",
+  "Pondok Gede",
   "Klender",
+  "Klender",
+  "Duren Sawit",
 ].map((loc, i) => ({ id: i + 1, img: `/images/cod/${i + 1}.jpg`, gram: "Foto COD", loc }));
 
 const THEME_KEY = "emasbung-theme";
