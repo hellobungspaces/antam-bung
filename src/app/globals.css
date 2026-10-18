@@ -31,8 +31,9 @@
   color-scheme: light;
 }
 
+/* Gelap mengikuti HP, kecuali pengunjung memilih sendiri lewat tombol di header (data-theme). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --pbg: #07130f;
     --outer: #030907;
     --ink: #e9f5ee;
@@ -57,6 +58,32 @@
     --limesh: none;
     color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --pbg: #07130f;
+  --outer: #030907;
+  --ink: #e9f5ee;
+  --soft: #7fa493;
+  --soft2: #bcd4c8;
+  --surf: #12251d;
+  --row: #0d1d17;
+  --sel: #14301f;
+  --selbd: #c6f432;
+  --lime: #c6f432;
+  --limeink: #0a1a00;
+  --ico: #c6f432;
+  --line: #c6f432;
+  --stp: #1a3327;
+  --zero: #5d7d6e;
+  --danger: #ff6b78;
+  --warn: #ffb454;
+  --up: #c6f432;
+  --cardbd: transparent;
+  --limebd: transparent;
+  --rowsh: none;
+  --limesh: none;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -232,5 +259,19 @@ input:focus-visible {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Pergantian tema: crossfade singkat lewat View Transitions (dikerjakan GPU, tanpa transisi per elemen) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+  animation-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

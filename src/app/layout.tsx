@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import { InlineScript } from "./inline-script";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -47,7 +48,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        {/* Terapkan pilihan tema sebelum halaman dicat, supaya tidak berkedip */}
+        <InlineScript html={`(function(){try{var t=localStorage.getItem("emasbung-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})()`} />
+      </head>
       <body className={`${manrope.variable} font-sans antialiased`}>
         {children}
       </body>

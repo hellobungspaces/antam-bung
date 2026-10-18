@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useSyncExternalStore, Fragment } from "react";
+import { flushSync } from "react-dom";
 import {
   Home,
   HandCoins,
@@ -23,6 +24,8 @@ import {
   Save,
   GraduationCap,
   CirclePlay,
+  Sun,
+  Moon,
   Tag,
   TrendingUp,
   Zap,
@@ -105,6 +108,28 @@ const INFO_SECTIONS = [
   { id: "info-faq", label: "Tanya jawab" },
 ];
 
+const THEME_KEY = "emasbung-theme";
+const THEME_COLORS = { light: "#faf7ef", dark: "#07130f" };
+
+// Tema aktif dibaca dari DOM (pilihan manual) atau dari pengaturan HP, tanpa state tambahan di komponen
+const subscribeTheme = (cb: () => void) => {
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener("change", cb);
+  window.addEventListener("emasbung-theme", cb);
+  return () => {
+    mq.removeEventListener("change", cb);
+    window.removeEventListener("emasbung-theme", cb);
+  };
+};
+const getIsDark = () => {
+  const t = document.documentElement.getAttribute("data-theme");
+  return t ? t === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+};
+
+// Samakan warna bar status browser dengan tema yang dipilih
+const applyThemeColor = (t: "light" | "dark") =>
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", THEME_COLORS[t]));
+
 const TABS = [
   { id: "beranda", label: "Home", Icon: Home },
   { id: "jual", label: "Buyback", Icon: HandCoins },
@@ -118,6 +143,36 @@ export default function AdvancedEmasBungPWA() {
   const loadRef = useRef<(() => Promise<void>) | null>(null);
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const isDark = useSyncExternalStore(subscribeTheme, getIsDark, () => false);
+
+  // React (mode dev) bisa menghapus atribut <html> saat remount, jadi pilihan tersimpan dipasang ulang sebelum dicat
+  useLayoutEffect(() => {
+    try {
+      const t = localStorage.getItem(THEME_KEY);
+      if (t === "light" || t === "dark") {
+        document.documentElement.setAttribute("data-theme", t);
+        applyThemeColor(t);
+        window.dispatchEvent(new Event("emasbung-theme"));
+      }
+    } catch {}
+  }, []);
+
+  const toggleTheme = () => {
+    triggerHaptic();
+    const next = isDark ? "light" : "dark";
+    const apply = () => {
+      document.documentElement.setAttribute("data-theme", next);
+      applyThemeColor(next);
+      flushSync(() => window.dispatchEvent(new Event("emasbung-theme")));
+    };
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {}
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce && "startViewTransition" in document) (document as Document & { startViewTransition: (cb: () => void) => unknown }).startViewTransition(apply);
+    else apply();
+  };
+
   const [antamSell, setAntamSell] = useState<number | null>(null);
   const [antamBuyback, setAntamBuyback] = useState<number | null>(null);
   const [waConfirm, setWaConfirm] = useState<WaConfirm | null>(null);
@@ -778,6 +833,13 @@ export default function AdvancedEmasBungPWA() {
           Emas BUNG
         </h1>
         <div className="flex gap-2">
+          <button
+            onClick={toggleTheme}
+            aria-label={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
+            className="btn btn-soft h-[34px] w-[34px] rounded-full"
+          >
+            {isDark ? <Sun size={16} strokeWidth={2.5} /> : <Moon size={16} strokeWidth={2.5} />}
+          </button>
           <button
             onClick={handleChatWA}
             aria-label="Chat WhatsApp"
