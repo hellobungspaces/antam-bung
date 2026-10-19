@@ -863,7 +863,11 @@ export default function AdvancedEmasBungPWA() {
         {activeTab === "beranda" && (
           <div className="animate-fade">
             <div className="px-4">
-              <p className="text-[11px] font-bold text-soft">Antam 1 gram · {currentDate}</p>
+              {isLoading ? (
+                <div className="skeleton h-3.5 w-36 rounded-md" />
+              ) : (
+                <p className="text-[11px] font-bold text-soft">Antam 1 gram · {currentDate}</p>
+              )}
               {isLoading ? (
                 <div className="skeleton mt-1 h-10 w-64 rounded-xl" />
               ) : (
@@ -894,7 +898,12 @@ export default function AdvancedEmasBungPWA() {
 
             {/* GRAFIK dari riwayat harga yang tersimpan: ketuk/geser untuk lihat harga per hari */}
             <div className="mt-2 px-4">
-              {hasChart ? (
+              {isLoading ? (
+                <>
+                  <div className="skeleton h-[84px] w-full rounded-2xl" />
+                  <div className="skeleton mt-1.5 h-4 w-44 rounded-md" />
+                </>
+              ) : hasChart ? (
                 <>
                   <div
                     className="relative touch-pan-y"
@@ -960,7 +969,9 @@ export default function AdvancedEmasBungPWA() {
             </div>
 
             {/* INSIGHT HARGA: satu baris, ketuk untuk detail */}
-            {insight && (
+            {isLoading ? (
+              <div className="skeleton mx-4 mt-2.5 h-11 rounded-[14px]" />
+            ) : insight && (
               <>
                 <button
                   onClick={() => setShowInsight(!showInsight)}
