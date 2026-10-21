@@ -670,7 +670,6 @@ export default function AdvancedEmasBungPWA() {
     if (n < 3) return null;
     const now = cpts[n - 1];
     const change = (from: number) => ((now - from) / from) * 100;
-    const pos = cmax === cmin ? 0.5 : (now - cmin) / (cmax - cmin);
     const span = `${n} hari`;
     const sinceStart = change(cpts[0]);
     const jt = (v: number) => `Rp ${(v / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} jt`;
@@ -678,13 +677,33 @@ export default function AdvancedEmasBungPWA() {
       const d = chartHist[cpts.lastIndexOf(v)]?.d;
       return `${jt(v)}${d ? ` · ${dlabel(d)}` : ""}`;
     };
+    const rb = (v: number) => `Rp ${Math.round(Math.abs(v) / 1000).toLocaleString("id-ID")} rb`;
+    // Berapa hari berturut-turut harga bergerak ke arah yang sama (hari tanpa perubahan dilewati)
+    const dir = Math.sign(now - cpts[n - 2]);
+    let streak = 0;
+    for (let i = n - 1; i > 0 && dir !== 0; i--) {
+      const s = Math.sign(cpts[i] - cpts[i - 1]);
+      if (s === dir) streak++;
+      else if (s !== 0) break;
+    }
+    // Terakhir kali harga sama murah (atau sama mahal) dengan hari ini
+    const lastAt = (cmp: (v: number) => boolean) => {
+      for (let i = n - 2; i >= 0; i--) if (cmp(cpts[i])) return n - 1 - i;
+      return null;
+    };
+    const cheaper = cpts.filter((v) => v > now).length; // hari yang lebih mahal dari hari ini
+    const pricier = cpts.filter((v) => v < now).length;
     let headline: string;
     if (cmax === cmin) headline = `Harga stabil ${span} terakhir`;
-    else if (now === cmin) headline = `Harga terendah dalam ${span}`;
-    else if (now === cmax) headline = `Harga tertinggi dalam ${span}`;
-    else if (pos < 0.25) headline = `Dekat harga terendah ${span}`;
-    else if (pos > 0.75) headline = `Dekat harga tertinggi ${span}`;
-    else headline = `${sinceStart >= 0 ? "Naik" : "Turun"} ${fmtPct(Math.abs(sinceStart)).replace(/^\+/, "")} dalam ${span}`;
+    else if (now === cmin) headline = `Terendah dalam ${span}. 5 gram lebih hemat ± ${rb(5 * (cmax - now))} dari saat tertinggi`;
+    else if (now === cmax) headline = `Tertinggi dalam ${span}. Naik ${rb(now - cmin)}/gram dari titik terendah`;
+    else if (streak >= 3) headline = `Sudah ${streak} hari ${dir < 0 ? "turun" : "naik"} berturut-turut, ${dir < 0 ? "−" : "+"}${rb(now - cpts[n - 1 - streak])}/gram`;
+    else if (cheaper / n >= 0.8) headline = `Lebih murah dari ${cheaper} dari ${n} hari terakhir. Terakhir semurah ini ${lastAt((v) => v <= now)} hari lalu`.replace(" Terakhir semurah ini null hari lalu", "");
+    else if (pricier / n >= 0.8) headline = `Lebih mahal dari ${pricier} dari ${n} hari terakhir. Terakhir setinggi ini ${lastAt((v) => v >= now)} hari lalu`.replace(" Terakhir setinggi ini null hari lalu", "");
+    else {
+      const d1 = now - cpts[n - 2];
+      headline = d1 === 0 ? `Harga tetap sejak kemarin` : `${d1 > 0 ? "Naik" : "Turun"} ${rb(d1)}/gram sejak kemarin. Rentang ${span}: ${rb(cmax - cmin)}/gram`;
+    }
     return {
       headline,
       rows: [
