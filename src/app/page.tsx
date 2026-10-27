@@ -1213,12 +1213,12 @@ export default function AdvancedEmasBungPWA() {
                 {/* Kenapa beli di Bung, di bawah galeri */}
                 <div id="info-kenapa" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Kenapa beli di Bung</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Yang bisa kamu buktikan sendiri</p>
+                  <p className="mb-3 text-xs font-semibold text-soft">Nggak perlu percaya omongan, cek sendiri aja</p>
                   <div className="surface divide-y divide-surf px-4">
                     {[
-                      ...(saveSell >= 1000 ? [{ Icon: Tag, title: "Lebih murah dari Antam", desc: "Harga beli di bawah harga resmi Antam." }] : []),
-                      ...(buybackAboveAntam ? [{ Icon: TrendUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai di atas perkiraan buyback Antam." }] : []),
-                      { Icon: Money, title: "Cairnya langsung", desc: "Terima uang saat ketemu, tanpa antre atau menunggu kiriman." },
+                      ...(saveSell >= 1000 ? [{ Icon: Tag, title: "Lebih murah dari Antam", desc: "Harganya di bawah harga resmi Antam." }] : []),
+                      ...(buybackAboveAntam ? [{ Icon: TrendUp, title: "Buyback lebih tinggi", desc: "Emasmu dihargai lebih tinggi dari perkiraan buyback Antam." }] : []),
+                      { Icon: Money, title: "Cairnya langsung", desc: "Ketemu, cek emasnya, uang langsung beres. Nggak perlu antre atau nunggu kiriman." },
                     ].map(({ Icon, title, desc }) => (
                       <div key={title} className="flex items-start gap-3 py-3">
                         <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-surf text-ico">
@@ -1236,7 +1236,7 @@ export default function AdvancedEmasBungPWA() {
                 {/* Galeri COD, di bawah alasan beli */}
                 <div id="info-galeri" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Galeri COD</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Bukti transaksi terverifikasi{gallery.length > 1 ? ", geser untuk lihat semua" : ""}</p>
+                  <p className="mb-3 text-xs font-semibold text-soft">Foto-foto dari COD sebelumnya{gallery.length > 1 ? ", geser buat lihat semua" : ""}</p>
                   <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1" role="group" aria-label="Galeri COD, geser ke samping">
                     {gallery.map((pic) => (
                       <div key={pic.id} className={`surface shrink-0 snap-start overflow-hidden ${gallery.length > 1 ? "w-44" : "w-full"}`}>
@@ -1252,10 +1252,10 @@ export default function AdvancedEmasBungPWA() {
 
                 <div id="info-bung" className="scroll-mt-4">
                   <h2 className="text-2xl font-extrabold tracking-tight">Tentang Bung</h2>
-                  <p className="mb-3 text-xs font-semibold text-soft">Penjual yang kamu temui langsung</p>
+                  <p className="mb-3 text-xs font-semibold text-soft">Orang di balik Emas BUNG</p>
                   <div className="surface p-4">
                     <p className="text-[13px] font-semibold leading-relaxed text-soft2">
-                      Saya Gilang, penjual Emas BUNG. Saya melayani COD Antam di Jabodetabek dan membagikan edukasi investasi emas di YouTube.
+                      Halo, aku Gilang. Aku jual Antam lewat COD di Jabodetabek, jadi kamu bisa lihat dan cek emasnya langsung sebelum bayar. Di YouTube, aku juga berbagi edukasi soal investasi emas.
                     </p>
                     <a
                       href={YOUTUBE_URL}
@@ -1263,7 +1263,7 @@ export default function AdvancedEmasBungPWA() {
                       rel="noopener noreferrer"
                       className="btn mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-lime px-4 text-xs font-extrabold text-limeink active:scale-95"
                     >
-                      <PlayCircle size={16} aria-hidden="true" /> Buka channel YouTube
+                      <PlayCircle size={16} aria-hidden="true" /> Mampir ke channel YouTube
                     </a>
                   </div>
                 </div>
