@@ -15,9 +15,24 @@ async function getJson(path: string): Promise<Row[]> {
   return Array.isArray(json.data) ? json.data : [];
 }
 
-// Harga jual + riwayat: logammulia.com (Antam resmi), 1 gram. Buyback: Indogold (Antam 1 gram),
-// karena logammulia tidak menyediakan harga buyback. API publik tanpa key.
-// Kegagalan dikembalikan sebagai data (bukan throw) karena pesan error di dalam
+type PaidRow = { weight: number; sell_price: number; buyback_price: number; updated_at: string };
+
+// API berbayar (emas.maulanar.my.id): riwayat + harga resmi Antam per gramasi.
+async function getPaid(query: string): Promise<PaidRow[]> {
+  const key = process.env.EMAS_API_KEY;
+  if (!key) throw new Error("EMAS_API_KEY belum diset");
+  const res = await fetch(`https://emas.maulanar.my.id/api/prices?${query}`, { headers: { Accept: "application/json", "X-API-Key": key } });
+  if (!res.ok) throw new Error(`Upstream ${res.status} (emas-api)`);
+  const json = (await res.json()) as { data?: PaidRow[] };
+  return Array.isArray(json.data) ? json.data : [];
+}
+
+const todayWib = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
+const isAntam = (t: string) => /antam|lm/i.test(t);
+
+// Harga jual + riwayat: Emas API ID (resource antam = logammulia.com), 1 gram. Kalau scraper-nya tertinggal
+// (mis. logammulia.com berubah tampilan), titik hari ini diisi dari agregator hargaemas yang dicocokkan dengan Indogold.
+// Buyback: Indogold (Antam 1 gram). Kegagalan dikembalikan sebagai data (bukan throw) karena pesan error di dalam
 // "use cache" disamarkan di produksi; cuma disimpan 30 detik supaya cepat pulih.
 async function getAntam1g(): Promise<Result> {
   "use cache";
@@ -27,37 +42,54 @@ async function getAntam1g(): Promise<Result> {
   };
 
   try {
-    const [hist, bbRows, nowRows, aggA, aggB] = await Promise.all([
-      getJson("logammulia/history?weight=1&material=gold&length=60"),
+    const [hist, recent, bbRows, aggA, aggB] = await Promise.all([
+      getPaid("resource[eq]=antam&weight[eq]=1&sort_by=updated_at&order=desc&limit=60"),
+      getPaid("resource[eq]=antam&sort_by=updated_at&order=desc&limit=30"),
       getJson("indogold").catch(() => [] as Row[]),
-      getJson("logammulia").catch(() => [] as Row[]),
       getJson("hargaemas-com").catch(() => [] as Row[]),
       getJson("hargaemas-net").catch(() => [] as Row[]),
     ]);
 
-    // Harga resmi per gramasi (harga per gram tiap gramasi tidak sama, jadi jangan dikali 1 gram)
-    const prices: Record<string, number> = {};
-    for (const r of nowRows) {
-      if (r.material === "gold" && r.materialType === "Emas Batangan" && r.sellPrice > 0) prices[String(r.weight)] = r.sellPrice;
-    }
-
-    // Satu titik per tanggal (data terbaru di depan), hanya "Emas Batangan" biasa
+    // Satu titik per tanggal (data terbaru di depan)
     const byDate = new Map<string, number>();
+    let officialBuyback: number | null = null;
     for (const r of hist) {
-      if (r.materialType === "Emas Batangan" && r.weight === 1 && !byDate.has(r.recordedDate)) byDate.set(r.recordedDate, r.sellPrice);
+      const d = r.updated_at.slice(0, 10);
+      if (r.sell_price > 0 && !byDate.has(d)) {
+        byDate.set(d, r.sell_price);
+        if (byDate.size === 1) officialBuyback = r.buyback_price > 0 ? r.buyback_price : null;
+      }
     }
-    const days = [...byDate.entries()].slice(0, 30).reverse();
-    if (days.length === 0) return fail("Data Antam kosong");
+    if (byDate.size === 0) return fail("Data Antam kosong");
 
-    const [updatedAt, sell] = days[days.length - 1];
+    // Harga resmi per gramasi pada tanggal terbaru (harga per gram tiap gramasi tidak sama)
+    const latest = [...byDate.keys()][0];
+    const prices: Record<string, number> = {};
+    for (const r of recent) if (r.updated_at.slice(0, 10) === latest && r.sell_price > 0) prices[String(r.weight)] = r.sell_price;
+
+    let sell = byDate.get(latest)!;
+    let updatedAt = latest;
+    let antamBuyback = officialBuyback;
+
+    // Scraper tertinggal: isi hari ini dari agregator, hanya kalau harga 1 gram-nya sejalan dengan Indogold (±1%)
+    const today = todayWib();
+    if (latest < today) {
+      const bb1 = (r: Row) => r.weight === 1 && isAntam(r.materialType);
+      const indo = bbRows.find((r) => bb1(r) && r.sellPrice > 0)?.sellPrice;
+      const agg = [...aggA, ...aggB].filter((r) => r.sellPrice > 0 && isAntam(r.materialType));
+      const one = agg.find((r) => r.weight === 1);
+      if (one && (!indo || Math.abs(one.sellPrice - indo) / indo <= 0.01)) {
+        sell = one.sellPrice;
+        updatedAt = today;
+        byDate.set(today, sell);
+        antamBuyback = agg.find((r) => r.weight === 1 && r.buybackPrice && r.buybackPrice > 0)?.buybackPrice ?? antamBuyback;
+        for (const k of Object.keys(prices)) delete prices[k];
+        for (const r of agg) prices[String(r.weight)] ??= r.sellPrice;
+      }
+    }
+
+    const days = [...byDate.entries()].sort(([x], [y]) => x.localeCompare(y)).slice(-30);
     const buyback = bbRows.find((r) => r.materialType === "Antam" && r.weight === 1 && r.buybackPrice)?.buybackPrice ?? null;
-
-    // Buyback Antam resmi tidak tersedia (logammulia.com memblokir server). Pembanding diambil dari agregator
-    // harga, dan hanya dipakai kalau harga jual 1 gram Antam di sana sama (±0,5%) dengan logammulia.com.
-    const antamBuyback =
-      [...aggA, ...aggB].find(
-        (r) => r.weight === 1 && r.buybackPrice && r.buybackPrice > 0 && /antam|lm|logam mulia/i.test(r.materialType) && Math.abs(r.sellPrice - sell) / sell <= 0.005,
-      )?.buybackPrice ?? null;
 
     cacheLife({ stale: 600, revalidate: 3600, expire: 86400 });
     return { ok: true, sell, buyback, antamBuyback, updatedAt, history: days.map(([date, price]) => ({ date, price })), prices };
