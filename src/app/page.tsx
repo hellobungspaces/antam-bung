@@ -19,7 +19,6 @@ import {
   Moon,
   PlayCircle,
   Plus,
-  SealCheck,
   ShieldCheck,
   ShoppingBag,
   SlidersHorizontal,
@@ -908,11 +907,6 @@ export default function AdvancedEmasBungPWA() {
                 Buyback {isLoading ? "..." : rp(buybackPrice)}
                 {updatedAtMs !== null && !manualPrice && <> · {agoLabel(nowMs - updatedAtMs)}</>}
               </p>
-              {!isLoading && saveSell >= 1000 && (
-                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-up/15 px-3 py-1 text-xs font-extrabold text-up">
-                  <SealCheck size={13} /> Hemat hingga {rp(saveSell)} dari harga Antam
-                </p>
-              )}
             </div>
 
             {/* GRAFIK dari riwayat harga yang tersimpan: ketuk/geser untuk lihat harga per hari */}
