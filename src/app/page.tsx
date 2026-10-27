@@ -1558,7 +1558,7 @@ export default function AdvancedEmasBungPWA() {
             </div>
             <h3 id="leave-title" className="text-xl font-extrabold">Keluar dari Emas BUNG?</h3>
             <p className="mb-5 mt-2 text-sm font-semibold leading-snug text-soft">
-              Kamu akan diarahkan ke channel YouTube Emas BUNG untuk belajar seputar emas. Keranjang kamu tetap aman di sini.
+              Kamu akan diarahkan ke channel YouTube Emas BUNG untuk belajar seputar emas, sudah ditonton 30rb+ orang. Keranjang kamu tetap aman di sini.
             </p>
             <div className="flex gap-3">
               <button autoFocus onClick={() => setShowLeaveConfirm(false)} className="btn btn-soft flex-1 py-3 text-sm">
