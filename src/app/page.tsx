@@ -1255,7 +1255,7 @@ export default function AdvancedEmasBungPWA() {
                   <p className="mb-3 text-xs font-semibold text-soft">Orang di balik Emas BUNG</p>
                   <div className="surface p-4">
                     <p className="text-[13px] font-semibold leading-relaxed text-soft2">
-                      Halo, aku Gilang. Aku jual Antam lewat COD di Jabodetabek, jadi kamu bisa lihat dan cek emasnya langsung sebelum bayar. Di YouTube, aku juga berbagi edukasi soal investasi emas.
+                      Gilang adalah penjual Emas BUNG yang melayani COD Antam di Jabodetabek, jadi kamu bisa lihat dan cek emasnya langsung sebelum bayar. Edukasi investasi emasnya di YouTube sudah ditonton 30rb+ orang.
                     </p>
                     <a
                       href={YOUTUBE_URL}
