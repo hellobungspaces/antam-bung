@@ -107,6 +107,7 @@ type InfoTab = (typeof INFO_TABS)[number]["id"];
 
 // Foto COD: file /images/cod/N.jpg sesuai urutan di sini
 const COD_GALLERY = [
+  "Klender",
   "Palmerah",
   "Klender",
   "Pulo Gadung",
@@ -140,7 +141,7 @@ const applyThemeColor = (t: "light" | "dark") =>
 const TABS = [
   { id: "beranda", label: "Home", Icon: House },
   { id: "jual", label: "Buyback", Icon: HandCoins },
-  { id: "info", label: "Info", Icon: Info },
+  { id: "info", label: "Informasi", Icon: Info },
   { id: "edukasi", label: "Edukasi", Icon: GraduationCap },
 ];
 
